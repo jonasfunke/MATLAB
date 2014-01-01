@@ -33,7 +33,7 @@ n_ref = str2double(tmp(1))*(mirror+1);
 
 box_size_template = ceil(2*box_size/2/cos(pi/4));%200;
 box_size_template = int16(box_size_template + mod(box_size_template, 2) +1 ) ; % make it even
-templates = zeros(box_size_template, box_size_template, n_ref*(mirror+1));
+templates = zeros(box_size_template, box_size_template, n_ref);
 w = (box_size_template-1)/2;
 for i=1:n_ref/(mirror+1) 
     go_on = 1;
@@ -60,11 +60,23 @@ for i=1:n_ref/(mirror+1)
     setResizable(h,0) 
     pos = int16(wait(h));
 
-    % refine reference
-    close all
+    
+    %refine reference
+    r = box_size/2;
     template = images(pos(2):pos(2)+pos(4), pos(1):pos(1)+pos(3),j);
+
+    close all
     imagesc( [pos(1) pos(1)+pos(3)], [pos(2) pos(2)+pos(4)],template), colorbar, colormap gray, axis image
-    c = round(ginput(1));
+    cur_fig = gca;
+    h = impoint(gca,[pos(1)+box_size_template/2 pos(2)+box_size_template/2]);
+    setColor(h, [1 0 0])
+    b = ellipse(r, r, 0, double(pos(1)+box_size_template/2), double(pos(2)+box_size_template/2));
+    set(b, 'Color', [1 0 0])
+    addNewPositionCallback(h, @(pos) update_ellipse(pos, r, cur_fig) );
+    c = round(wait(h));
+    close all
+    
+
     area = [c(2)-w c(2)+w c(1)-w c(1)+w];
     if mirror
         templates(:,:,2*i-1) = images(area(1):area(2), area(3):area(4), j);
@@ -75,13 +87,21 @@ for i=1:n_ref/(mirror+1)
       
 end
 close all
-%% display templates
+
+%% display and write templates
+path_out_templates = [path_out filesep 'reference_particles'];
+mkdir(path_out_templates)
 dx = (box_size_template-box_size-1)/2;
 close all
 for i=1:n_ref
     subplot(n_ref/(mirror+1),mirror+1,i)
     imagesc(templates(dx:dx+box_size, dx:dx+box_size,i)),  colormap gray, axis image
+    tmp_out = templates(dx:dx+box_size, dx:dx+box_size,i)-min(min(templates(dx:dx+box_size, dx:dx+box_size,i)));
+    imwrite(  uint16(tmp_out*(2^16-1)/max(tmp_out(:))) , [path_out_templates filesep 'ref_' num2str(i) '.tif' ]);
 end
+
+%% ask if one wants to refine selection
+refine = strcmp(questdlg('Dismiss particles with low correlation?','Refinement','Yes','No','No'), 'Yes');  
 
 %% Calculate X-Correlation and find maximum correlations
 disp('Calculating x-correlation...')
@@ -149,13 +169,14 @@ for t=1:n_ref
         waitbar( frac , h, ['Calculating x-correlation... ' num2str(round(n_remain*dt/60*10)/10) ' min remaining']) 
     end
 end
+pause(0.1)
 close(h)
 close all
 
 
 %% remove particles, which belong to multiple classes
 disp('Removig duplicates...')
-cc = varycolor(n_ref);
+%cc = varycolor(n_ref);
 peaks_ref = cell(n_ref, n_img);
 for i=1:n_img
     % genertate image of  correlations
@@ -191,7 +212,7 @@ for i=1:n_img
     %}
 end
 
-%% view images and found particles
+%% display images and found particles
 %{
 cc = varycolor(n_ref);
 close all
@@ -268,9 +289,13 @@ for i=1:n_img
 
     end
 end
+clear('p', 'p_rot')
 
-%% write particles for each reference 
+%%
+clear data
+data(n_ref/(mirror+1)) = struct('stats', [], 'particles', [],  'particles_rot', []);
 w = 4*box_size/2;
+
 for t=1:n_ref/(mirror+1)
     n_particle = 0;
     for i=1:n_img
@@ -279,14 +304,21 @@ for t=1:n_ref/(mirror+1)
             n_particle = n_particle + size(particles{(mirror+1)*t-1,i}, 3);
         end
     end    
-    disp(['Reference ' num2str(t) '/' num2str(n_ref/(mirror+1)) ': ' num2str(n_particle) ' particles'])
+    
     p_out = zeros(2*w+1, 2*w+1, n_particle, 'uint16');
+    p_out_rot = zeros(2*w+1, 2*w+1, n_particle, 'uint16');
 
+    stats_out = zeros(n_particle, 5);
+    
     m=1;
     if mirror 
         for i=1:n_img
             for j=1:size(particles{(mirror+1)*t-1,i},3)
                 p_out(:,:,m) = particles{(mirror+1)*t-1,i}(:,:,j);
+                p_out_rot(:,:,m) = particles_rot{(mirror+1)*t-1,i}(:,:,j);
+
+                stats_out(m,1:4)  = peaks_ref{(mirror+1)*t-1,i}(j,1:4);
+                stats_out(m,5)  = i;
                 m = m+1;
             end
         end
@@ -294,98 +326,121 @@ for t=1:n_ref/(mirror+1)
     for i=1:n_img
         for j=1:size(particles{(mirror+1)*t,i},3)
             p_out(:,:,m) = particles{(mirror+1)*t,i}(:,:,j);
+            if mirror
+                p_out_rot(:,:,m) = flipdim(particles_rot{(mirror+1)*t,i}(:,:,j),1);
+            else
+                p_out_rot(:,:,m) = particles_rot{(mirror+1)*t,i}(:,:,j);
+            end
+            stats_out(m,1:4)  = peaks_ref{(mirror+1)*t,i}(j,1:4);
+            stats_out(m,5)  = i;
             m = m+1;
         end
     end
     
-    % write as spider-file
-    writeSPIDERfile([path_out filesep 'ref_' num2str(t) '.spi'], p_out, 'stack')
-    
-    % write as single tif-files
-    path_out_tif = [path_out filesep 'ref_' num2str(t) '_tif'];
-    mkdir(path_out_tif)
-    for i=1:n_particle
-        imwrite(p_out(:,:,i), [path_out_tif filesep 'ref_' num2str(t) '_' sprintf('%.3i',i) '.tif' ]);
+    data(t).stats = stats_out;
+    data(t).particles = p_out;
+    data(t).particles_rot = p_out_rot;
+
+end
+clear('p_out', 'p_out_rot')
+
+%% refine 
+      
+if refine
+    for t=1:n_ref/(mirror+1)
+        [cc_sort, sort_index] = sortrows(data(t).stats(:,3), -1);
+        i = [1:size(cc_sort,1)]';
+
+        close all
+        subplot(1, 2, 1)
+        imagesc(data(t).particles_rot(:,:,sort_index(1))), axis image, colormap gray
+       % title(['Ref ' num2str(t) ', particle ' num2str(i) ', cc = ' num2str(data(t).stats(sort_index(1),3))])
+        cur_img = gca;
+
+        subplot(1, 2, 2)
+        plot(i, cc_sort, 'b'), hold on
+        ylim = [0 1];
+        set(gca, 'YLim', ylim, 'XLim', [1 i(end)]);
+        h = imline(gca,[50 50], ylim);
+        setColor(h,[1 0 0]);
+        setPositionConstraintFcn(h, @(pos)[ min( i(end), max(1,[pos(2,1);pos(2,1)])) ylim'   ])
+
+        id = addNewPositionCallback(h, @(pos) update_img(  data(t).particles_rot(:,:,sort_index(  max(1, min(i(end), round(pos(1,1))))   ) ), cur_img )  );
+        id2 = addNewPositionCallback(h, @(pos) title(['cc = ' num2str( cc_sort(  max(1, min(i(end), round(pos(1,1))))) )]) );
+
+        pos_line = wait(h);
+        limit_index = max(1, min(i(end), round(pos_line(1,1))));
+        limit(t) = cc_sort(limit_index);
+
     end
-    
+    pause(0.1)
+    close all
 end
 
-%% write rotated particles
+
+%%
+
+
+data_refined(n_ref/(mirror+1)) = struct('stats', [], 'particles', [],  'particles_rot', []);
+
 w = 4*box_size/2;
 for t=1:n_ref/(mirror+1)
-    n_particle = 0;
-    for i=1:n_img
-        n_particle = n_particle + size(particles_rot{(mirror+1)*t,i}, 3);
-        if mirror
-            n_particle = n_particle + size(particles_rot{(mirror+1)*t-1,i}, 3);
-        end
-    end  
     
-    p_out = zeros(2*w+1, 2*w+1, n_particle, 'uint16');
-    
-    m=1;
-    if mirror 
-        for i=1:n_img
-            for j=1:size(particles_rot{(mirror+1)*t-1,i},3)
-                p_out(:,:,m) = particles_rot{(mirror+1)*t-1,i}(:,:,j);
-                m = m+1;
-            end
-        end
-    end
-    for i=1:n_img
-        for j=1:size(particles_rot{(mirror+1)*t,i},3)
-            if mirror
-                p_out(:,:,m) = flipdim(particles_rot{(mirror+1)*t,i}(:,:,j), 1);
-            else
-                p_out(:,:,m) = particles_rot{(mirror+1)*t,i}(:,:,j);
-            end
-            m = m+1;
-        end
+    index = find(data(t).stats(:,3)>limit(t));
+    stats = zeros(size(index, 1),5);
+
+    p = zeros(2*w+1, 2*w+1, size(index, 1), 'uint16');
+    p_rot = zeros(2*w+1, 2*w+1, size(index, 1), 'uint16');
+
+    for i=1:size(index,1)
+        stats(i,:) = data(t).stats(index(i),:);
+        p(:,:,i) = data(t).particles(:,:,index(i));
+        p_rot(:,:,i) = data(t).particles_rot(:,:,index(i));
     end
     
-    % write as spider-file
-    writeSPIDERfile([path_out filesep 'ref_' num2str(t) '_rot.spi'], p_out, 'stack')
+    data_refined(t).stats = stats;
+    data_refined(t).particles = p;
+    data_refined(t).particles_rot = p_rot;
     
-    % write as single tif-files
-    path_out_tif = [path_out filesep 'ref_' num2str(t) '_rot_tif'];
-    mkdir(path_out_tif)
-    for i=1:n_particle
-        imwrite(p_out(:,:,i), [path_out_tif filesep 'ref_' num2str(t) '_rot_' sprintf('%.3i',i) '.tif' ]);
-    end
     
 end
+clear('p', 'p_rot')
 
+
+%% write particles for each reference 
+for t=1:n_ref/(mirror+1)
+    % write as spider-file
+    writeSPIDERfile([path_out filesep 'ref_' num2str(t) '.spi'], data_refined(t).particles, 'stack')
+    writeSPIDERfile([path_out filesep 'ref_' num2str(t) '_rot.spi'], data_refined(t).particles_rot, 'stack')
+  
+    % write as single tif-files
+    path_out_tif1 = [path_out filesep 'ref_' num2str(t) '_tif'];
+    path_out_tif2 = [path_out filesep 'ref_' num2str(t) '_rot_tif'];
+    mkdir(path_out_tif1)
+    mkdir(path_out_tif2)
+
+    for i=1:size(data_refined(t).particles, 3)
+        imwrite(data_refined(t).particles(:,:,i), [path_out_tif1 filesep 'ref_' num2str(t) '_' sprintf('%.3i',i) '.tif' ]);
+        imwrite(data_refined(t).particles_rot(:,:,i), [path_out_tif2 filesep 'ref_' num2str(t) '_' sprintf('%.3i',i) '.tif' ]);
+    end
+end
 
 %% write all particles
-n_particle = 0;
-for t=1:n_ref
-    for i=1:n_img
-        n_particle = n_particle + size(particles{t,i}, 3);
-    end    
-end
-p_out = zeros(2*w+1, 2*w+1, n_particle, 'uint16');
-m=1;
-for t=1:n_ref
-    for i=1:n_img
-        for j=1:size(particles{t,i},3)
-            p_out(:,:,m) = particles{t,i}(:,:,j);
-            m = m+1;
-        end
-    end
-end
-
 % write as spider-file
-writeSPIDERfile([path_out filesep 'all.spi'], p_out, 'stack')
+writeSPIDERfile([path_out filesep 'all.spi'], cat(3,data.particles), 'stack')
 
 % write as single tif-files
 path_out_tif = [path_out filesep 'all_tif'];
 mkdir(path_out_tif)
-for i=1:n_particle
-    imwrite(p_out(:,:,i), [path_out_tif filesep 'all_' sprintf('%.3i',i) '.tif' ]);
+m = 1;
+for t=1:n_ref/(mirror+1)
+    for i=1:size(data(t).particles, 3)
+    %    imwrite(data(t).particles(:,:,i), [path_out_tif filesep 'all_' sprintf('%.3i',m) '.tif' ]);
+        m = m+1;
+    end
 end
 
-
-%% view images and found particles
+%% display images and found particles
 cc = varycolor(n_ref);
 close all
 fig_dim =2*[20 10];
@@ -401,6 +456,7 @@ w = box_size/2;
 for i=1:n_img
     subplot(1, 2, 1)
     imagesc(img3(:,:,i)), colorbar,  colormap gray, axis image, hold on % img2
+    h = zeros(n_ref,1);
     for r=1:n_ref
         h(r) = plot(peaks_ref{r,i}(:,1), peaks_ref{r,i}(:,2),  '+', 'color', cc(r,:), 'MarkerSize', 1);
         
@@ -430,6 +486,6 @@ for i=1:n_img
 end
 
 
-
 %%
 disp('finished')
+
