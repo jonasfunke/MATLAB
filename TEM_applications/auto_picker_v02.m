@@ -20,15 +20,31 @@ mkdir(path_out)
 %% load images
 disp(['Loading and filtering ' num2str(n_img) ' images...'])
 images = zeros(img_size, img_size, n_img);
-h = fspecial('gaussian', r_filter*4*2 , r_filter); % gaussian filter, diameter = 2*(width = 4*sigma)
+f_filter = fspecial('gaussian', r_filter*4*2 , r_filter); % gaussian filter, diameter = 2*(width = 4*sigma)
+h = waitbar(0,'Loading and filtering images... ? time remaining');
+tic
 for i=1:n_img
     img = imread([pname filesep fnames{i}], 'PixelRegion', {[1 2048], [1 2048]});
-    tmp = double(img)-double(imfilter(img, h, 'same'));
+    tmp = double(img)-double(imfilter(img, f_filter, 'same'));
     images(:,:,i) = imresize(tmp,[512 512], 'nearest'); %bin image 4x4 for faster image processing
     %images(:,:,i) = imresize(img(1:2048,1:2048),[512 512], 'nearest'); %bin image 4x4 for faster image processing
+    if i==1
+        dt = toc;
+        tic;
+    else
+        dt_this = toc;
+        dt = (dt+dt_this)/2;
+        tic;
+    end
+    
+    n_remain = n_img-i;
+    waitbar( i/n_img , h, ['Loading and filtering images... ' num2str(round(n_remain*dt/60*10)/10) ' min remaining'])
+
 end
+toc;
+close(h); close all;
 %% create class references
-tmp = inputdlg({'Number of class references:'}, 'Number of classes', 1, {'2'});
+tmp = inputdlg({'Number of class references:'}, 'Number of classes', 1, {'1'});
 n_ref = str2double(tmp(1))*(mirror+1);
 
 box_size_template = ceil(2*box_size/2/cos(pi/4));%200;
@@ -243,7 +259,6 @@ end
 %}
 
 %% generate stack of particles
-disp('Writing particles...')
 close all
 particles = cell(n_ref, n_img);
 particles_rot = cell(n_ref, n_img);
@@ -345,7 +360,9 @@ end
 clear('p_out', 'p_out_rot')
 
 %% refine 
-      
+disp('Refining particles...')
+
+limit = zeros(n_ref/(mirror+1), 1);
 if refine
     for t=1:n_ref/(mirror+1)
         [cc_sort, sort_index] = sortrows(data(t).stats(:,3), -1);
@@ -361,7 +378,7 @@ if refine
         plot(i, cc_sort, 'b'), hold on
         ylim = [0 1];
         set(gca, 'YLim', ylim, 'XLim', [1 i(end)]);
-        h = imline(gca,[50 50], ylim);
+        h = imline(gca,[1 1], ylim);
         setColor(h,[1 0 0]);
         setPositionConstraintFcn(h, @(pos)[ min( i(end), max(1,[pos(2,1);pos(2,1)])) ylim'   ])
 
@@ -376,10 +393,13 @@ if refine
     pause(0.1)
     close all
 end
+pause(0.1)
+close all
 
+%% write  refining 
+dlmwrite([path_out filesep 'cc_thresholds_ref_cc_min.txt'], [ [1:n_ref/(mirror+1)]' limit], '\t');
 
 %%
-
 
 data_refined(n_ref/(mirror+1)) = struct('stats', [], 'particles', [],  'particles_rot', []);
 
@@ -402,12 +422,13 @@ for t=1:n_ref/(mirror+1)
     data_refined(t).particles = p;
     data_refined(t).particles_rot = p_rot;
     
-    
 end
 clear('p', 'p_rot')
 
 
 %% write particles for each reference 
+disp('Writing particles...')
+
 for t=1:n_ref/(mirror+1)
     % write as spider-file
     writeSPIDERfile([path_out filesep 'ref_' num2str(t) '.spi'], data_refined(t).particles, 'stack')
@@ -416,12 +437,17 @@ for t=1:n_ref/(mirror+1)
     % write as single tif-files
     path_out_tif1 = [path_out filesep 'ref_' num2str(t) '_tif'];
     path_out_tif2 = [path_out filesep 'ref_' num2str(t) '_rot_tif'];
+    path_out_spi = [path_out filesep 'ref_' num2str(t) '_spi'];
+    
     mkdir(path_out_tif1)
     mkdir(path_out_tif2)
-
+    mkdir(path_out_spi)
+    
     for i=1:size(data_refined(t).particles, 3)
         imwrite(data_refined(t).particles(:,:,i), [path_out_tif1 filesep 'ref_' num2str(t) '_' sprintf('%.3i',i) '.tif' ]);
         imwrite(data_refined(t).particles_rot(:,:,i), [path_out_tif2 filesep 'ref_' num2str(t) '_' sprintf('%.3i',i) '.tif' ]);
+        writeSPIDERfile([path_out_spi filesep 'ref_' num2str(t) '_' sprintf('%.3i',i) '.spi' ], data_refined(t).particles(:,:,i))
+
     end
 end
 
@@ -435,12 +461,14 @@ mkdir(path_out_tif)
 m = 1;
 for t=1:n_ref/(mirror+1)
     for i=1:size(data(t).particles, 3)
-    %    imwrite(data(t).particles(:,:,i), [path_out_tif filesep 'all_' sprintf('%.3i',m) '.tif' ]);
+        imwrite(data(t).particles(:,:,i), [path_out_tif filesep 'all_' sprintf('%.3i',m) '.tif' ]);
         m = m+1;
     end
 end
 
 %% display images and found particles
+disp('Plotting images...')
+
 cc = varycolor(n_ref);
 close all
 fig_dim =2*[20 10];
