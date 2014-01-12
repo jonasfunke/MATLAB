@@ -14,4 +14,7 @@ display( ['Added search-path: ' matlab_dir filesep 'TOOLBOX_TEM' ])
 
 addpath(genpath([matlab_dir filesep 'TOOLBOX_MOVIE']))
 display( ['Added search-path: ' matlab_dir filesep 'TOOLBOX_MOVIE' ])
+
+addpath(genpath([matlab_dir filesep 'TOOLBOX_TYPHOON']))
+display( ['Added search-path: ' matlab_dir filesep 'TOOLBOX_TYPHOON' ])
 %%
