@@ -4,11 +4,12 @@ function [ I, areas ] = integrate_areas(img, n_areas, same_size)
     close all
     areas = zeros(n_areas, 4);
     I = zeros(n_areas, max(size(img)));
-    plot_image_ui(img{1})
+    plot_image_ui(img{1});
     
     for i=1:n_areas
         for j=1:i-1
             rectangle('Position', areas(j,:), 'EdgeColor', 'r'); %plot all integrated areas
+            text(areas(j, 1)+areas(j,3)/2, areas(j, 2)+areas(j,4)/2, num2str(j), 'Color', 'r', 'VerticalAlignment', 'Middle', 'HorizontalAlignment', 'Center')
         end
         
         if i==1
