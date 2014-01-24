@@ -48,7 +48,7 @@ close all
 
 
 %%
-p = find_peaks1d(yp, kernel_sz, h_min);
+p = find_peaks1d(yp, kernel_sz, h_min, 1); %data, width, min_height, 1=absolute height
 
 
 

@@ -179,12 +179,14 @@ if strcmp(button,'Yes') %load old data
     for i=1:n_lanes
         
         subplot(2, 1, 1)
-        plot_image(da_cor, 'D->A', 12)
+        imagesc(da_cor), axis image, colormap gray
+        title('D->A')
         hold on
         rectangle('Position', auto_pos(i,:), 'EdgeColor', 'r')
         
         subplot(2, 1, 2)
-        plot_image(da_cor, 'D->A', 12)
+        imagesc(da_cor), axis image, colormap gray
+        title('D->A')
         hold on
         for j=1:i-1
             rectangle('Position', lanes{j,5}, 'EdgeColor', 'r')
@@ -193,8 +195,8 @@ if strcmp(button,'Yes') %load old data
         hold off
 
         lane_name = inputdlg({'Name of lane:', 'Length of spacer:'}, 'Lane properties' , 1, {['Lane ' num2str(1)], num2str(i+9)} );
-        lanes{1,6} = str2double(lane_name{2});
-        lanes{1,7} = lane_name{1};
+        lanes{1,7} = str2double(lane_name{2});
+        lanes{1,6} = lane_name{1};
         
         display([ lane_name{1} ':   spacer=' lane_name{2}])
     end
@@ -234,7 +236,7 @@ for i=1:size(lanes,1)
     da = conv(data, g, 'same') ./ conv(ones(size(data)), g, 'same');
     
     % FIND PEAKS IN DA-channel
-    peaks_da = find_peaks1d(da, 20, 0.5*max(da)); % window size 20, h_min=0.5*max
+    peaks_da = find_peaks1d(da, 20, 0.5*max(da), 1); % window size 20, h_min=0.5*max, 1 = absolute height
     y_mean = peaks_da(end);  % use the last found peak (leading band)
     dy = 5; % integration width
     
@@ -398,7 +400,20 @@ for i=1:size(lanes,1)
     [tmp j1] =max(lanes{i,1});
     [tmp j2] =max(lanes{i,2});
     [tmp j3] =max(lanes{i,3});
-    y_max_max(i,:) = [lanes{i,4}(j1) lanes{i,4}(j2) lanes{i,4}(j3)];
+    
+    % filter da signal for maximum determination
+    sigma_filter = 2;
+    data = lanes{i,2};
+    threeSigma = ceil(3*sigma_filter);
+    g = exp(-(-threeSigma:threeSigma).^2/2/sigma_filter^2);
+    da = conv(data, g, 'same') ./ conv(ones(size(data)), g, 'same');
+    
+    % FIND PEAKS IN DA-channel
+    peaks_da = find_peaks1d(da, 20, 0.5*max(da), 1); % window size 20, h_min=0.5*max, 1 = absolute height
+ %   y_mean = peaks_da(end)+1; 
+    
+    y_max_max(i,:) = [lanes{i,4}(j1) lanes{i,4}(peaks_da(end)+1) lanes{i,4}(j3)];
+    %y_max_max(i,:) = [lanes{i,4}(j1) lanes{i,4}(j2) lanes{i,4}(j3)];
 end
 
 subplot(2, 1, 1)
@@ -670,3 +685,151 @@ end
 close all
 display('...done')
 
+
+%%
+close all
+fig_dim = [10 7.5];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+ 
+s = -y_max_max(1:30,2);
+l = [16:45]';
+s_m = (-y_max_max(end-6:end-1,2));
+close all
+plot(l,s) ,hold on
+
+h = zeros(length(d_crystal), 1);
+for i=1:length(d_crystal)
+    h(i) =    hline(s_m(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
+end
+legend(h, gfp)
+ylabel('Migration distance')
+xlabel('Contour length [bp]')
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'mig_distance.tif'])
+%%
+
+close all
+fig_dim = [15 15];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+ c2 = polyfit(d_crystal(1:end-1), s_exp(1:end-1)*0.34, 1);
+for i=1:6
+    plot(d_crystal(i),s_exp(i)*0.34, 'o', 'MarkerFaceColor', cc(i,:), 'Markersize', 10),  hold on
+end
+
+plot([0 15], c2(1)*[0 14]+c2(2))
+set(gca, 'XLim', [0 10], 'YLim', [0 10])
+legend([gfp {['Fit, slope = ' num2str(c2(1)) ', offset = ' num2str(c2(2))]}], 'Location', 'Southeast')
+grid on
+xlabel('Separation from crystal structure [nm]')
+ylabel('Separation measured [nm]')
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'mig_distance_calib.tif'])
+
+%%
+interp1(s,l, s_m, 'linear');
+%%
+
+E_app = [I_sum(:,2) ./ (I_sum(:,2) + I_sum(:,1))];
+E = [I_sum(:,2) ./ (I_sum(:,2) + gamma*I_sum(:,1))];
+
+l = [16:45]';
+E_calib = E(1:30);
+E_gfp = E(31:end-1);
+
+offset = 8.1637;
+gfp = {'26-132', '3-198', '3-204', '132-157', '3-157', '1440_JF'};
+d_crystal = [1.4457; 2.308; 2.770; 3.957; 4.71241; 26*0.34+2];
+
+
+
+
+
+close all
+fig_dim = [20 7.5];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+ 
+d_exp =  interp1(E_calib,l, E_gfp, 'linear'); %measured distance from interpolation
+c = polyfit(d_crystal(1:end-1), d_exp(1:end-1)*0.34, 1);
+cc = varycolor(length(d_crystal));
+
+
+subplot(1, 2, 1)
+plot( interp1(E_calib, l, [min(E_calib):0.001:max(E_calib)], 'linear'), [min(E_calib):0.001:max(E_calib)], 'b', l, E_calib, 'k.'), hold on
+legend({'Linear Interpolation', 'Calibration data'})
+for i=1:length(d_crystal)
+    hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
+end
+set(gca, 'XLim', [15 45], 'YLim', [0 0.8])
+xlabel('Contour length [bp]'), ylabel('app. FRET Efficiency')
+
+subplot(1, 2, 2)
+h = zeros(length(d_crystal), 1);
+for i=1:length(d_crystal)
+    bar(i, E_gfp(i), 'FaceColor', cc(i,:)), hold on
+end
+for i=1:length(d_crystal)
+    h(i) =    hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
+end
+
+ylabel('app. FRET Efficiency')
+xlabel('GFP-mutant')
+set(gca, 'YLim', [0 0.8])
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'calib_samples.tif'])
+
+%%
+close all
+fig_dim = [15 15];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+ for i=1:length(d_crystal)
+    plot(d_crystal(i), d_exp(i)*0.34, 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10), hold on
+ end
+set(gca, 'XLim', [0 14], 'YLim', [0 14]), axis square
+set(gca, 'XTick', [0:2:14], 'YTick', [0:2:14])
+plot([0 15], c(1)*[0 14]+c(2))
+
+legend([gfp {['Fit, slope = ' num2str(c(1)) ', offset = ' num2str(c(2))]}], 'Location', 'Southeast')
+grid on
+xlabel('Separation from crystal structure [nm]')
+ylabel('Separation measured [nm]')
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal.tif'])
+
+%%
+close all
+fig_dim = [15 15];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+ for i=1:length(d_crystal)-1
+        plot(d_crystal(i), d_exp(i)*0.34-c(2), 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10), hold on
+ end
+
+set(gca, 'XLim', [0 6], 'YLim', [0 6]), axis square
+set(gca, 'XTick', [0:1:6], 'YTick', [0:1:6])
+plot([0 6], c(1)*[0 6])
+
+legend([gfp(1:end-1) {['Fit, slope = ' num2str(c(1)) ', offset = ' num2str(c(2))]}], 'Location', 'NorthWest')
+grid on
+xlabel('Separation from crystal structure [nm]')
+ylabel('Separation measured [nm]')
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal_01.tif'])
+
+
+
+%%
+[tmp, a] = integrate_areas({aa_bg, ref_bg}, 5, 1);
+%%
+close all
+fig_dim = [15 10];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+
+ for i=1:length(d_crystal)-1
+    %bar(i, -tmp(i,2)./tmp(i,1), 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10 ), hold on
+    bar(i, -tmp(i,2)./tmp(i,1),'FaceColor', cc(i,:) ), hold on
+
+ end
+legend(gfp(1:end-1), 'Location', 'NorthWest')
+xlabel('GFP-mutant')
+ylabel('[GFP-signal] / [A->A Signal]')
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'ratio.tif'])

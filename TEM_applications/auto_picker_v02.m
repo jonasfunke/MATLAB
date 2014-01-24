@@ -3,10 +3,13 @@ clear all; close all; clc;
 run('my_prefs'); path0=cd;
 
 %% parameters
-box_size = 50; % size of particle, HAS TO BE EVEN
+n_bin = 4; % number of pixel to bin in one dim
+box_size_real = 200;%200; % size of particle on real image, HAS TO BE EVEN
 dalpha = 5; % deg, angle resolution
 mirror = 1; % include mirror transformation, 0=no, 1= yes
-img_size = 512; %size of the binned image
+
+box_size = box_size_real/n_bin; % size of particle, HAS TO BE EVEN
+img_size = 2048/n_bin; %size of the binned image
 r_filter = 15; % pixel (original image), radius for gaussian high pass
 
 %% load images
@@ -26,7 +29,7 @@ tic
 for i=1:n_img
     img = imread([pname filesep fnames{i}], 'PixelRegion', {[1 2048], [1 2048]});
     tmp = double(img)-double(imfilter(img, f_filter, 'same'));
-    images(:,:,i) = imresize(tmp,[512 512], 'nearest'); %bin image 4x4 for faster image processing
+    images(:,:,i) = imresize(tmp,[img_size img_size], 'nearest'); %bin image 4x4 for faster image processing
     %images(:,:,i) = imresize(img(1:2048,1:2048),[512 512], 'nearest'); %bin image 4x4 for faster image processing
     if i==1
         dt = toc;
@@ -117,7 +120,7 @@ for i=1:n_ref
 end
 
 %% ask if one wants to refine selection
-refine = strcmp(questdlg('Dismiss particles with low correlation?','Refinement','Yes','No','No'), 'Yes');  
+refine = 1; %strcmp(questdlg('Dismiss particles with low correlation?','Refinement','Yes','No','No'), 'Yes');  
 
 %% Calculate X-Correlation and find maximum correlations
 disp('Calculating x-correlation...')
@@ -144,7 +147,7 @@ for t=1:n_ref
     
     for i=1:n_img
         tic
-        xcor_img = zeros(512, 512, n_rot);
+        xcor_img = zeros(img_size, img_size, n_rot);
         
         for r=1:n_rot % loop through rotations
             tmp = normxcorr2(lib(:,:,r), images(:,:,i)); % x-correlate
@@ -195,6 +198,8 @@ disp('Removig duplicates...')
 %cc = varycolor(n_ref);
 peaks_ref = cell(n_ref, n_img);
 for i=1:n_img
+    disp(['refining ' num2str(i) ])
+    
     % genertate image of  correlations
     cor_img = zeros(img_size,img_size );
     cor_img_index = zeros(img_size,img_size );
@@ -207,10 +212,12 @@ for i=1:n_img
 
     end
     
+    
+    tic
     p = find_peaks2d(cor_img, round(box_size/4), 0, 1 ); % find-peaks, width, min_height, absolute height 
     p(:,1:2) =  p(:,1:2)+1;
    
-
+    
     for j=1:size(p,1)
         peaks_ref{cor_img_index(p(j,2),p(j,1)),i} = [peaks_ref{cor_img_index(p(j,2),p(j,1)),i}; p(j,1:2) cor_img(p(j,2),p(j,1)) rot_img(p(j,2),p(j,1)) ];
     end
@@ -227,6 +234,7 @@ for i=1:n_img
     pause 
     %}
 end
+disp('done Removig duplicates...')
 
 %% display images and found particles
 %{
@@ -277,12 +285,17 @@ for i=1:n_img
             angle = peaks_ref{t,i}(j,4);
             p(max(1,w-y+2):min(2*w+1, 2*w+1-y-w+N),max(1,w-x+2):min(2*w+1, 2*w+1-x-w+N),j) = img(max(1, y-w):min(N,y+w) , max(1, x-w):min(N,x+w) );
             
-                    lib(:,:,j) = tmp(dx:dx+box_size, dx:dx+box_size);
+                %    lib(:,:,j) = tmp(dx:dx+box_size, dx:dx+box_size);
             
             w2=w+4*dx;
-            tmp = imrotate(img(max(1, y-w2):min(N,y+w2) , max(1, x-w2):min(N,x+w2) ), -angle, 'crop');
-
             
+           % bla = zeros(2*w2+1, 2*w2+1);
+          %  bla( max(1,w2-y+2):min(2*w2+1, 2*w2+1-y-w2+N),max(1,w2-x+2):min(2*w2+1, 2*w2+1-x-w2+N)) = img(max(1, y-w2):min(N,y+w2) , max(1, x-w2):min(N,x+w2) );
+            tmp = imrotate(img(max(1, y-w2):min(N,y+w2) , max(1, x-w2):min(N,x+w2) ), -angle, 'crop');
+          %  tmp = imrotate(bla, -angle, 'crop');
+
+          %  p_rot(:,:,j) = bla(4*dx:4*dx+4*box_size, 4*dx:4*dx+4*box_size);
+       
             p_rot(max(1,w-y+2):min(2*w+1, 2*w+1-y-w+N),max(1,w-x+2):min(2*w+1, 2*w+1-x-w+N),j) = tmp(4*dx:4*dx+4*box_size, 4*dx:4*dx+4*box_size);
             %{
             subplot(3,2,1:4)
