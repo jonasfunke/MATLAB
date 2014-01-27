@@ -2,8 +2,10 @@ function [ structure, tmp ] = get_structure( file_loc, name, length )
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 structure = cell(1,4);
-tmp = dlmread(file_loc);
-     
+tmp = dlmread(file_loc, '\t',1); % skip first line
+disp('skip first line')
+    % tmp = dlmread(file_loc, '\t',1);
+
 
 %% check for double structre and so on
 dangle = zeros(size(tmp,1)/2, 1);

@@ -6,7 +6,7 @@ run('my_prefs'); path0=cd;
 n_bin = 4; % number of pixel to bin in one dim
 box_size_real = 200;%200; % size of particle on real image, HAS TO BE EVEN
 dalpha = 5; % deg, angle resolution
-mirror = 1; % include mirror transformation, 0=no, 1= yes
+mirror = 0; % include mirror transformation, 0=no, 1= yes
 
 box_size = box_size_real/n_bin; % size of particle, HAS TO BE EVEN
 img_size = 2048/n_bin; %size of the binned image

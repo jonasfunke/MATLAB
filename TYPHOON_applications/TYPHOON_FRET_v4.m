@@ -732,16 +732,13 @@ interp1(s,l, s_m, 'linear');
 E_app = [I_sum(:,2) ./ (I_sum(:,2) + I_sum(:,1))];
 E = [I_sum(:,2) ./ (I_sum(:,2) + gamma*I_sum(:,1))];
 
-l = [16:45]';
+l = [10:41]';
 E_calib = E(1:30);
 E_gfp = E(31:end-1);
 
 offset = 8.1637;
 gfp = {'26-132', '3-198', '3-204', '132-157', '3-157', '1440_JF'};
 d_crystal = [1.4457; 2.308; 2.770; 3.957; 4.71241; 26*0.34+2];
-
-
-
 
 
 close all
@@ -759,7 +756,7 @@ legend({'Linear Interpolation', 'Calibration data'})
 for i=1:length(d_crystal)
     hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
 end
-set(gca, 'XLim', [15 45], 'YLim', [0 0.8])
+set(gca, 'XLim', [5 45], 'YLim', [0 0.8])
 xlabel('Contour length [bp]'), ylabel('app. FRET Efficiency')
 
 subplot(1, 2, 2)
@@ -833,3 +830,16 @@ xlabel('GFP-mutant')
 ylabel('[GFP-signal] / [A->A Signal]')
 
 print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'ratio.tif'])
+
+
+%%
+close all
+fig_dim = [25 7.5];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+
+bar(E_app, 'k')
+xlabel('Lane')
+ylabel('app. FRET Efficiency')
+set(gca, 'Ylim', [0 0.6])
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep '2.tif'])
+
