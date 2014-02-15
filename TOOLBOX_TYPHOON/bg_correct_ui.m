@@ -1,4 +1,4 @@
-function [ img_bg ] = bg_correct_ui( img, img_title )
+function [ img_bg, bg ] = bg_correct_ui( img, img_title )
 % select and subtract background from image img
 %   Detailed explanation goes here
 

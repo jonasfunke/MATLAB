@@ -3,32 +3,50 @@ clear all; close all; clc;
 run('my_prefs'); path0=cd;
 
 %% parameters
-n_bin = 4; % number of pixel to bin in one dim
-box_size_real = 200;%200; % size of particle on real image, HAS TO BE EVEN
-dalpha = 5; % deg, angle resolution
-mirror = 0; % include mirror transformation, 0=no, 1= yes
+input = {'Box size [pixel]:', 'Number of class references:', 'Include mirror (0=no, 1=yes):',... % sample options
+    'Binning:', 'Radius of high-pass filter [pixel]:', 'Angel resolution [deg]:'};
+input_default = {'170', '1', '1', '4', '-1', '5'};
+tmp = inputdlg(input, 'Parameters', 1, input_default);
+box_size_real = round(str2double(tmp(1))); % size of particle on real image, HAS TO BE EVEN
+mirror = str2double(tmp(3)); % include mirror transformation, 0=no, 1= yes
+n_ref = str2double(tmp(2))*(mirror+1);
+n_bin = str2double(tmp(4)); % number of pixel to bin in one dim
+r_filter = str2double(tmp(5));  %100; % pixel (original image), radius for gaussian high pass, -1 == no filtering
+dalpha = str2double(tmp(6)); % deg, angle resolution
+
+if mod(box_size_real,n_bin*2) ~= 0
+    box_size_real = box_size_real+2*n_bin-mod(box_size_real,n_bin*2);
+    disp(['Box size not a multiple of bin_size. Changed to ' num2str(box_size_real)])
+end
 
 box_size = box_size_real/n_bin; % size of particle, HAS TO BE EVEN
 img_size = 2048/n_bin; %size of the binned image
-r_filter = 15; % pixel (original image), radius for gaussian high pass
+
 
 %% load images
 pname=uigetdir(data_dir,'Choose a folder with tem images.'); % get pathname
 tmp = dir([pname filesep '*_16.TIF']);
 fnames = {tmp.name}; % list of filenames
 n_img = size(fnames,2);
-path_out = [pname filesep 'particles']; % output folder
+path_out = [pname filesep datestr(now, 'yyyy-mm-dd_HH-MM') '_particles']; % output folder
 mkdir(path_out)
+
 
 %% load images
 disp(['Loading and filtering ' num2str(n_img) ' images...'])
 images = zeros(img_size, img_size, n_img);
-f_filter = fspecial('gaussian', r_filter*4*2 , r_filter); % gaussian filter, diameter = 2*(width = 4*sigma)
+if r_filter > 0
+    f_filter = fspecial('gaussian', r_filter*4*2 , r_filter); % gaussian filter, diameter = 2*(width = 4*sigma)
+end
 h = waitbar(0,'Loading and filtering images... ? time remaining');
 tic
 for i=1:n_img
     img = imread([pname filesep fnames{i}], 'PixelRegion', {[1 2048], [1 2048]});
-    tmp = double(img)-double(imfilter(img, f_filter, 'same'));
+    if r_filter > 0
+        tmp = double(img)-double(imfilter(img, f_filter, 'same'));
+    else
+        tmp = double(img);
+    end
     images(:,:,i) = imresize(tmp,[img_size img_size], 'nearest'); %bin image 4x4 for faster image processing
     %images(:,:,i) = imresize(img(1:2048,1:2048),[512 512], 'nearest'); %bin image 4x4 for faster image processing
     if i==1
@@ -47,8 +65,6 @@ end
 toc;
 close(h); close all;
 %% create class references
-tmp = inputdlg({'Number of class references:'}, 'Number of classes', 1, {'1'});
-n_ref = str2double(tmp(1))*(mirror+1);
 
 box_size_template = ceil(2*box_size/2/cos(pi/4));%200;
 box_size_template = int16(box_size_template + mod(box_size_template, 2) +1 ) ; % make it even
@@ -81,7 +97,7 @@ for i=1:n_ref/(mirror+1)
 
     
     %refine reference
-    r = box_size/2;
+    r = double(box_size/2);
     template = images(pos(2):pos(2)+pos(4), pos(1):pos(1)+pos(3),j);
 
     close all
@@ -126,7 +142,7 @@ refine = 1; %strcmp(questdlg('Dismiss particles with low correlation?','Refineme
 disp('Calculating x-correlation...')
 alpha = 0:dalpha:359;
 n_rot = length(alpha); % number of rotations
-dx = (box_size_template-box_size-1)/2;
+dx = int16((box_size_template-box_size-1)/2);
 
 peaks = cell(n_ref, n_img);
 peaks2 = cell(n_ref, n_img);
@@ -140,7 +156,7 @@ for t=1:n_ref
         tmp = imrotate(templates(:,:,t), alpha(j), 'crop');
         lib(:,:,j) = tmp(dx:dx+box_size, dx:dx+box_size);
     end
- 
+
     %loop through images
     img3 = zeros(img_size, img_size, n_img); % stores maximum of cor-coef of all rotations
     img3_index = zeros(img_size, img_size, n_img); % stores index of maximum
@@ -154,7 +170,7 @@ for t=1:n_ref
             xcor_img(:,:,r) = tmp(box_size/2+1:end-box_size/2, box_size/2+1:end-box_size/2);
         end
         
-        
+
         for k=1:512
         for l=1:512
             [cmax, imax] = max(xcor_img(k,l,:));
@@ -162,20 +178,22 @@ for t=1:n_ref
             img3_index(k,l,i) = imax;
         end
         end
-        
-        
+
         %find peaks in img3
         tmp = img3(box_size/2+1:end-box_size/2, box_size/2+1:end-box_size/2,i);
         h_min = mean(tmp(:)) + 0.25*std(tmp(:));
-        p = find_peaks2d(tmp, round(box_size/4), h_min, 0); % radius of window, minimal height,  no absolure = relative height
-        p(:,1:2) = p(:,1:2)+box_size/2+1;
-        
-        tmp = img3(:,:,i);
-        tmp_index = img3_index(:,:,i);
-        idx = sub2ind(size(tmp), p(:,2), p(:,1) );
-        peaks{t,i} = [p(:,1:2) tmp(idx) alpha(tmp_index(idx))']; % x y coer_coef alpha 
     
-        display(['Reference (' num2str(t) '/' num2str(n_ref) '): image (' num2str(i) '/' num2str(n_img) '), found ' num2str(size(p,1)) ' particles' ])
+        p = find_peaks2d(tmp, round(box_size/4), h_min, 0); % radius of window, minimal height,  no absolure = relative height
+        if length(p) > 0
+            p(:,1:2) = p(:,1:2)+box_size/2+1;
+            tmp = img3(:,:,i);
+            tmp_index = img3_index(:,:,i);
+            idx = sub2ind(size(tmp), p(:,2), p(:,1) );
+            peaks{t,i} = [p(:,1:2) tmp(idx) alpha(tmp_index(idx))']; % x y coer_coef alpha 
+
+            display(['Reference (' num2str(t) '/' num2str(n_ref) '): image (' num2str(i) '/' num2str(n_img) '), found ' num2str(size(p,1)) ' particles' ])
+
+        end
 
         if t==1 && i==1
             dt = toc;
@@ -194,9 +212,10 @@ close all
 
 
 %% remove particles, which belong to multiple classes
-disp('Removig duplicates...')
 %cc = varycolor(n_ref);
 peaks_ref = cell(n_ref, n_img);
+h = waitbar(0,'Searching for particles... ');
+
 for i=1:n_img
     disp(['refining ' num2str(i) ])
     
@@ -213,7 +232,7 @@ for i=1:n_img
     end
     
     
-    tic
+    
     p = find_peaks2d(cor_img, round(box_size/4), 0, 1 ); % find-peaks, width, min_height, absolute height 
     p(:,1:2) =  p(:,1:2)+1;
    
@@ -233,8 +252,15 @@ for i=1:n_img
     end
     pause 
     %}
+    
+    waitbar( i/n_img , h, 'Searching for particles... ')
+
+    
 end
-disp('done Removig duplicates...')
+close(h);
+pause(0.1);
+    
+   
 
 %% display images and found particles
 %{

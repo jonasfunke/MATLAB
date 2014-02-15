@@ -77,9 +77,9 @@ path_out_plots = [path_out filesep 'plots'];
 mkdir(path_out_plots)
 
 %%  correct for background
-dd_bg = bg_correct_ui(dd_bin, 'Donor excitation -> Donor emission');
-da_bg = bg_correct_ui(da_bin, 'Donor excitation -> Acceptor emission');
-aa_bg = bg_correct_ui(aa_bin, 'Acceptor excitation -> Acceptor emission');
+[dd_bg, bg_dd ] = bg_correct_ui(dd_bin, 'Donor excitation -> Donor emission');
+[da_bg,bg_da ] = bg_correct_ui(da_bin, 'Donor excitation -> Acceptor emission');
+[aa_bg, bg_aa ] = bg_correct_ui(aa_bin, 'Acceptor excitation -> Acceptor emission');
 
 %% shift images
 [dd_bg, da_x_min, da_y_min] = overlay_image(da_bg, dd_bg, 10);
@@ -307,6 +307,20 @@ t.setTag('SamplesPerPixel',1);
 t.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
 t.write( uint16(da_cor-min(da_cor(:)))  );
 t.close();
+
+t = Tiff([path_out filesep 'da_cor+bg.tif'],'w');
+t.setTag('Photometric',Tiff.Photometric.MinIsWhite);
+t.setTag('BitsPerSample',16);
+t.setTag('SampleFormat',Tiff.SampleFormat.UInt);
+t.setTag('ImageLength',size(da_cor,1));
+t.setTag('ImageWidth',size(da_cor,2));
+t.setTag('SamplesPerPixel',1);
+t.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
+t.write( uint16(da_cor+bg_da)  );
+t.close();
+
+
+
 %% save all the data
 disp('Saving data...')
 save([path_out filesep prefix_out '_data.mat'])
@@ -506,6 +520,22 @@ xlabel('Lane nr.', 'Fontsize', label_sz)
 ylabel('FRET Efficiency', 'Fontsize', label_sz)
 
 print(cur_fig, '-dtiff', '-r500' , [path_out_plots filesep 'Integration_region.tif']); %save figure
+
+%%
+close all
+fig_dim =25*[1 size(aa_bg,1)/size(aa_bg,2)];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+
+plot_image(aa_bg, [0.1 0.2])
+%ylabel('A -> A')
+set(gca, 'XTick', [],  'YTick', [])
+hold on
+for i=1:size(bands,1)
+    rectangle('Position', bands{i,2}, 'EdgeColor', 'r')
+    text(bands{i,2}(1)+bands{i,2}(3)/2, bands{i,2}(2), num2str(i), 'VerticalAlignment', 'Bottom', 'HorizontalAlignment', 'Center', 'Color', [1 0 0], 'FontSize', 5, 'Linewidth', 0.5)
+end
+print(cur_fig, '-dtiff', '-r500' , [path_out_plots filesep 'Integration_region_aa.tif']); %save figure
+
 
 %% FRET FOR EACH BAND
 close all
@@ -732,23 +762,53 @@ interp1(s,l, s_m, 'linear');
 E_app = [I_sum(:,2) ./ (I_sum(:,2) + I_sum(:,1))];
 E = [I_sum(:,2) ./ (I_sum(:,2) + gamma*I_sum(:,1))];
 
-l = [10:41]';
-E_calib = E(1:30);
-E_gfp = E(31:end-1);
+l = [10:40]';
+E_calib = E_app(1:31);
+E_gfp = E_app(32:44);
+%E_calib2 = E_app(33:63);
+%l2 = [10:40]';
 
 offset = 8.1637;
-gfp = {'26-132', '3-198', '3-204', '132-157', '3-157', '1440_JF'};
-d_crystal = [1.4457; 2.308; 2.770; 3.957; 4.71241; 26*0.34+2];
+%gfp = {'0nm', '3-132', '3-157', '3-198', '3-204', '3-212', '26-132', '26-212', '132-157', '132-198', '132-204', '132-212', '157-198'};
+%
+m = [
+0   0   0.01
+3	132	47.1241
+3	157	23.3387
+3	198	23.0822
+3	204	27.6979
+3	212	39.3466
+26	132	14.4572
+%26	157	35.1685
+%26	198	37.1143
+26	212	25.7755
+132	157	39.5715
+132	198	38.3533
+132	204	29.3513
+132	212	30.8227
+157	198	15.6155
+%157	204	30.9032
+%198	204	20.1488
+%198	212	42.9572
+];
+d_crystal = m(:,3)/10;
 
+gfp = cell(1,size(m,1));
+for i=1:size(m,1)
+    gfp{i} = [num2str(m(i,1)) '-' num2str(m(i,2))];
+end
+
+%%
 
 close all
 fig_dim = [20 7.5];
 cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
- 
+
 d_exp =  interp1(E_calib,l, E_gfp, 'linear'); %measured distance from interpolation
-c = polyfit(d_crystal(1:end-1), d_exp(1:end-1)*0.34, 1);
+
 cc = varycolor(length(d_crystal));
 
+ylim = [min(E_app) max(E_app)];
 
 subplot(1, 2, 1)
 plot( interp1(E_calib, l, [min(E_calib):0.001:max(E_calib)], 'linear'), [min(E_calib):0.001:max(E_calib)], 'b', l, E_calib, 'k.'), hold on
@@ -756,7 +816,94 @@ legend({'Linear Interpolation', 'Calibration data'})
 for i=1:length(d_crystal)
     hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
 end
-set(gca, 'XLim', [5 45], 'YLim', [0 0.8])
+set(gca, 'XLim', [5 45], 'YLim', ylim)
+xlabel('Contour length [bp]'), ylabel('app. FRET Efficiency')
+
+subplot(1, 2, 2)
+h = zeros(length(d_crystal), 1);
+for i=1:length(d_crystal)
+    bar(i, E_gfp(i), 'FaceColor', cc(i,:)), hold on
+end
+for i=1:length(d_crystal)
+    h(i) =    hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
+end
+
+ylabel('app. FRET Efficiency')
+xlabel('GFP-mutant')
+set(gca, 'YLim', ylim)
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'calib_samples.tif'])
+
+%%
+close all
+fig_dim = [15 15];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+h = zeros(length(d_exp)+1,1)' ;
+for i=[1:length(d_exp)]
+    h(i) = plot(d_crystal(i), d_exp(i)*0.34, 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10); hold on
+ end
+set(gca, 'XLim', [0 14], 'YLim', [0 14]), axis square
+set(gca, 'XTick', [0:2:14], 'YTick', [0:2:14])
+
+i=[1:length(d_exp)];
+[c, S] = polyfit(d_crystal(i), d_exp(i)*0.34, 1);
+
+ste = sqrt(diag(inv(S.R)*inv(S.R')).*S.normr.^2./S.df);
+
+
+h(end) = plot([0 15], c(1)*[0 15]+c(2));
+
+legend(h, [gfp {['Fit, slope = ' num2str(round(c(1)*100)/100) '+-' num2str(round(ste(1)*100)/100) ', offset = ' num2str(round(c(2)*100)/100)  '+-' num2str(round(ste(2)*100)/100)  ]}], 'Location', 'Southeast')
+grid on
+xlabel('Separation from crystal structure [nm]')
+ylabel('Separation measured [nm]')
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal.tif'])
+
+%%
+close all
+fig_dim = [20 20];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+h = zeros(length(d_exp)+1,1)' ;
+for i=[1:length(d_exp)]
+    h(i) = plot(d_crystal(i), d_exp(i)*0.34-c(2), 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10); hold on
+end
+set(gca, 'XLim', [0 6], 'YLim', [0 6]), axis square
+set(gca, 'XTick', [0:2:14], 'YTick', [0:2:14])
+h(end) = plot([0 15], c(1)*[0 15]);
+
+legend(h, [gfp {['Fit, slope = ' num2str(round(c(1)*100)/100) '+-' num2str(round(ste(1)*100)/100) ', offset = ' num2str(round(c(2)*100)/100)  '+-' num2str(round(ste(2)*100)/100)  ]}], 'Location', 'Southeast')
+grid on
+xlabel('Separation from crystal structure [nm]')
+ylabel('Separation measured [nm]')
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal.tif'])
+
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal_01.tif'])
+
+
+
+
+%% --------------------------
+
+
+close all
+fig_dim = [20 7.5];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+
+i = [7:length(l2)];
+d_exp2 =  interp1(E_calib2(i),l2(i), E_gfp, 'linear'); %measured distance from interpolation
+
+cc = varycolor(length(d_crystal));
+
+
+subplot(1, 2, 1)
+plot( interp1(E_calib2(i), l2(i), [min(E_calib2):0.001:max(E_calib2)], 'linear'), [min(E_calib2):0.001:max(E_calib2)], 'b', l2, E_calib2, 'k.'), hold on
+legend({'Linear Interpolation', 'Calibration data'})
+for i=1:length(d_crystal)
+    hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
+end
+set(gca, 'XLim', [10 40], 'YLim', [0 0.8])
 xlabel('Contour length [bp]'), ylabel('app. FRET Efficiency')
 
 subplot(1, 2, 2)
@@ -772,46 +919,52 @@ ylabel('app. FRET Efficiency')
 xlabel('GFP-mutant')
 set(gca, 'YLim', [0 0.8])
 
-print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'calib_samples.tif'])
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'calib_samples2.tif'])
 
 %%
-close all
 fig_dim = [15 15];
 cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
- for i=1:length(d_crystal)
-    plot(d_crystal(i), d_exp(i)*0.34, 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10), hold on
+h = zeros(length(d_exp2)+1,1)' ;
+for i=[1:length(d_exp2)]
+    h(i) = plot(d_crystal(i), d_exp2(i)*0.34, 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10); hold on
  end
 set(gca, 'XLim', [0 14], 'YLim', [0 14]), axis square
 set(gca, 'XTick', [0:2:14], 'YTick', [0:2:14])
-plot([0 15], c(1)*[0 14]+c(2))
 
-legend([gfp {['Fit, slope = ' num2str(c(1)) ', offset = ' num2str(c(2))]}], 'Location', 'Southeast')
+i=[ 1:length(d_exp2)];
+c = polyfit(d_crystal(i), d_exp2(i)*0.34, 1);
+
+h(end) = plot([0 15], c(1)*[0 15]+c(2));
+
+legend(h, [gfp {['Fit, slope = ' num2str(c(1)) ', offset = ' num2str(c(2))]}], 'Location', 'Southeast')
 grid on
 xlabel('Separation from crystal structure [nm]')
 ylabel('Separation measured [nm]')
 
-print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal.tif'])
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal2.tif'])
 
 %%
 close all
 fig_dim = [15 15];
 cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
- for i=1:length(d_crystal)-1
-        plot(d_crystal(i), d_exp(i)*0.34-c(2), 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10), hold on
+h = zeros(length(d_exp2)+1,1)' ;
+for i=[1:length(d_exp2)]
+    h(i) = plot(d_crystal(i), d_exp2(i)*0.34-c(2), 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10); hold on
  end
-
 set(gca, 'XLim', [0 6], 'YLim', [0 6]), axis square
-set(gca, 'XTick', [0:1:6], 'YTick', [0:1:6])
-plot([0 6], c(1)*[0 6])
+set(gca, 'XTick', [0:2:14], 'YTick', [0:2:14])
+h(end) = plot([0 15], c(1)*[0 15])
 
-legend([gfp(1:end-1) {['Fit, slope = ' num2str(c(1)) ', offset = ' num2str(c(2))]}], 'Location', 'NorthWest')
+    legend(h, [gfp {['Fit, slope = ' num2str(c(1)) ', offset = ' num2str(c(2))]}], 'Location', 'Northwest')
 grid on
 xlabel('Separation from crystal structure [nm]')
 ylabel('Separation measured [nm]')
 
-print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal_01.tif'])
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal_2.tif'])
 
+print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal_01_2.tif'])
 
+%% ----------------------------------------------
 
 %%
 [tmp, a] = integrate_areas({aa_bg, ref_bg}, 5, 1);
@@ -842,4 +995,15 @@ xlabel('Lane')
 ylabel('app. FRET Efficiency')
 set(gca, 'Ylim', [0 0.6])
 print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep '2.tif'])
+
+%%
+close all
+
+E1 = [I_sum(33:63,2) ./ (I_sum(33:63,2) + I_sum(33:63,1))];
+E2 = [I_sum2(1:31,2) ./ (I_sum2(1:31,2) + 0.33*I_sum2(1:31,1))];
+
+l = [10:40]';
+plot(l, E1, 'r', l, E2, 'g')
+
+
 
