@@ -16,7 +16,7 @@ gamma = (I(2,2)-ratio*I(1,2) ) / (ratio*I(1,1)-I(2,1)) % approximated gamma fact
 %% plot
 close all
 subplot(1,2,1)
-h = bar(I)
+h = bar(I);
 set(h(1),'FaceColor','g')
 set(h(2),'FaceColor','b')
 set(h(3),'FaceColor','k')
@@ -25,7 +25,7 @@ legend({'D->D', 'D->A', 'Reference'})
 set(gca, 'XTickLabel', {'D-only', 'D+A'})
 
 subplot(1,2,2)
-h = bar(I')
+h = bar(I');
 set(h(1),'FaceColor','k')
 set(h(2),'FaceColor','k')
 %ylabel('Integrated Intensity [a.u.]')

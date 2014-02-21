@@ -7,7 +7,7 @@ dc  = clim(2)-clim(1);
 clim = [clim(1)-dc*0.01  clim(2)+dc*0.01];
 clim_start = [mean(x)-3*std(x) mean(x)+3*std(x)];
 clim_start(2) = min(clim_start(2), clim(2));
-clim_start(1) = max(clim_start(1), clim(1)+1)
+clim_start(1) = max(clim_start(1), clim(1)+1);
 
 cur_fig = figure('units','normalized','outerposition',[0 0 1 1]);
 colormap('Gray');
