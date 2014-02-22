@@ -4,7 +4,7 @@ run('my_prefs')
 
 %% select folder
 pname = uigetdir(data_dir, 'Select directory with .xmp files');
-files = dir([pname filesep '*.xmp']); % get files in folder
+files = dir([pname filesep 'ml2d_ref*.xmp']); % get files in folder
 path_out = [pname filesep 'averages_tif']; % generate output folder
 mkdir(path_out)
 
