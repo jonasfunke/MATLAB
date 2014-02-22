@@ -1,8 +1,7 @@
-
+%% startup
 clc, clear all, close all
-path0 = cd; addpath(path0); display(['Using path: ' path0 ])
-matlab_dir = userpath; matlab_dir = matlab_dir(1:end-1);
-run([matlab_dir filesep 'my_prefs.m'])
+path0 = cd;
+run( 'my_prefs.m')
 
 %% LOAD MOVIES, DETERMINE SEQUENZ AND THERSHOLDS
 
