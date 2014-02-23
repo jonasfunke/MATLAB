@@ -15,4 +15,4 @@ for i=1:size(files,1)
     imwrite(uint16(img*(2^16-1)./max(img(:))), [path_out filesep files(i).name(1:end-4) '.tif']);
 end
     
-disp('Done')
+disp(['Done... converted ' num2str(size(files,1)) ' files.'])
