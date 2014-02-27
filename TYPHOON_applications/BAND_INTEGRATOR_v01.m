@@ -47,6 +47,7 @@ def={'3'};
 tmp = inputdlg(prompt, 'How many bands', 1, def, options);
 n_bands = str2double(tmp(1));
 close all
+
 %% integrate areas, all areas have the same size
 [I, areas] = integrate_areas(img_bg, n_bands, 1); %cell of images, number of bands, 1=all bands habe the same size
 
@@ -85,6 +86,7 @@ end
 %%
 save([path_out filesep prefix_out '_data'] )
 
+dlmwrite([path_out filesep 'data.txt' ], I, 'delimiter', '\t')
 
 
 %%
