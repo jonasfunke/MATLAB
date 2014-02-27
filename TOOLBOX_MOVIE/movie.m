@@ -46,7 +46,7 @@ classdef movie < handle
                 obj.sizeY = size(imread([pname filesep obj.fnames{1}]),1);
                 obj.mov_length = length(obj.fnames);
             else % fits
-                obj.info = fitsinfo([obj.pname obj.fname]);
+                obj.info = fitsinfo([obj.pname filesep obj.fname]);
                 obj.sizeX = obj.info.PrimaryData.Size(1); 
                 obj.sizeY = obj.info.PrimaryData.Size(2);
                 obj.mov_length = obj.info.PrimaryData.Size(3);
@@ -97,7 +97,7 @@ classdef movie < handle
                 if obj.input == 1 % tif
                     tmp(:,:,i) = double(imread([obj.pname filesep obj.fnames{frames_out(i)}]));
                 else
-                    tmp(:,:,i) = fitsread([obj.pname obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [frames_out(i) frames_out(i)] });  % fits               
+                    tmp(:,:,i) = fitsread([obj.pname filesep obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [frames_out(i) frames_out(i)] });  % fits               
                 end
             end
             
@@ -117,7 +117,7 @@ classdef movie < handle
             obj.initRead;
             N = 0;
                      
-            display('Tracing movie... please wait')
+            %display('Tracing movie... please wait')
             while go_on
                 [movie, frames, go_on]  = obj.readNext;
                 [traces, itraces] = append_traces(movie, traces, itraces, frames, h_min, r_find, r_integrate, min_length);
@@ -126,11 +126,11 @@ classdef movie < handle
                 N = N + length(frames);
             end
             avg_frame = avg_frame ./ N; 
-            display('Done tracing movie.')
+            %display('Done tracing movie.')
          end
          
          % integrate specific reagions in movie
-         function [itraces ] = traces_movie_position(obj, positions )
+         function [itraces ] = traces_movie_position(obj, positions, r_integrate )
             itraces = cell(0,1);
             go_on = 1;
             obj.initRead;
@@ -141,11 +141,11 @@ classdef movie < handle
          end
          
          % determine peak-finding threshholds
-         function [h_min ] = get_h_min(obj, r_find)
+         function [h_min] = get_h_min(obj, r_find)
             if obj.input == 1 % tiff
                 img = double(imread([obj.pname filesep obj.fnames{obj.frames(1)}]));
             else % fits
-                img = fitsread([obj.pname obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [obj.frames(1) obj.frames(1)] }); % read first frame                
+                img = fitsread([obj.pname filesep obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [obj.frames(1) obj.frames(1)] }); % read first frame                
             end
             p = find_peaks2d(img, r_find*2, min(img(:)), 0); % finding all possible peaks p has x, y, height, height-bg, I, I-I_bg
             
@@ -190,6 +190,37 @@ classdef movie < handle
             
             obj.h_min = h_min;
             
+         end
+         
+         
+                
+         
+         
+         % generate average image
+         function [ avg_frame ] = average_image(obj, N_max )
+
+            if N_max <= 0 % adjust to full movie lenght
+                N_max = obj.mov_length; 
+            end
+            avg_frame = zeros(obj.sizeX, obj.sizeY);
+            
+            go_on = 1;
+            obj.initRead;
+            N = 0;
+            while go_on
+                [movie, frames, go_on]  = obj.readNext;
+            
+                if N+length(frames) < N_max
+                    avg_frame = avg_frame + sum(movie,3);
+                    N = N + length(frames);
+                else
+                    k = min(N_max-N, length(frames));
+                    avg_frame = avg_frame + sum(movie(:,:,1:k),3);
+                    N = N + k;
+                    go_on = 0;
+                end
+            end
+            avg_frame = avg_frame ./ N; 
          end
 
 

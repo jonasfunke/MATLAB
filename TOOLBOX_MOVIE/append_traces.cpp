@@ -41,10 +41,7 @@ void mexFunction (
 
 
 	
-	mexPrintf("movie_length = %i \tImage = %i , %i \t", movie_length, col, row);
-	mexPrintf("r_find = %i \t h_min = %.2f \t r_integrate = %i\n", r_find, h_min, r_integrate);
-	
-	//fill framenumbers
+		//fill framenumbers
 	fnumber = mxGetPr(prhs[3]);  //columns * rows * frame
 	for(int i=0; i< PeakProcessing::max(mxGetM(prhs[3]), mxGetN(prhs[3]) ); i++){
 		framenumber.push_back((int)fnumber[i]);
@@ -102,8 +99,9 @@ void mexFunction (
 		}
 	} 
 	
-	mexPrintf("Added %i to trace.\t", traces.size());
-	mexPrintf("Added %i itraces\n", itraces.size());
+    mexPrintf("movie_length = %i \tImage = %i , %i \t", movie_length, col, row);
+	mexPrintf("r_find = %i \t h_min = %.2f \t r_integrate = %i\t", r_find, h_min, r_integrate);
+	mexPrintf("%i traces\n", traces.size());
 
 	//Allocate storage place for the result 
 	int dims[1];  dims[0]=(int) traces.size();  //number of traces   

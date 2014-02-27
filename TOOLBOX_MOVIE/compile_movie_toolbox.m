@@ -2,8 +2,8 @@ display('Compiling movie toolbox... please wait');
 mex find_peaks2d.cpp peakprocessing.cpp;
 
 mex append_traces.cpp peakprocessing.cpp;
-%mex append_traces_to_position.cpp peakprocessing.cpp;
-%mex map_traces.cpp peakprocessing.cpp;
+mex append_traces_to_position.cpp peakprocessing.cpp;
+mex map_traces.cpp peakprocessing.cpp;
 
 %mex average_pos.cpp peakprocessing.cpp;
 %mex make_traces.cpp peakprocessing.cpp;
