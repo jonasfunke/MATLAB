@@ -74,11 +74,21 @@ classdef movie < handle
             end
          end
          
-         % initialize the counter         
+         %reads one frame
+         function [img] = readFrame(obj,framenumber)
+              if obj.input == 1 % tif
+                    img = double(imread([obj.pname filesep obj.fnames{framenumber}]));
+              else
+                    img = fitsread([obj.pname filesep obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [framenumber framenumber] });  % fits               
+              end
+         end
+         
+         % initialize the counter
          function  initRead(obj)
               obj.counter = 1;
          end
           
+         
          %reads the next N_read frames
          function [tmp, frames_out, go_on] = readNext(obj)
             read_stop = obj.counter+obj.N_read-1; % last frame to read
@@ -141,13 +151,19 @@ classdef movie < handle
          end
          
          % determine peak-finding threshholds
-         function [h_min] = get_h_min(obj, r_find)
-            if obj.input == 1 % tiff
-                img = double(imread([obj.pname filesep obj.fnames{obj.frames(1)}]));
-            else % fits
-                img = fitsread([obj.pname filesep obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [obj.frames(1) obj.frames(1)] }); % read first frame                
-            end
-            p = find_peaks2d(img, r_find*2, min(img(:)), 0); % finding all possible peaks p has x, y, height, height-bg, I, I-I_bg
+         function [h_min, p_out] = get_h_min(obj, r_find, N_img)
+            
+             if exist('N_img', 'var') % use average frame
+                 img = obj.average_image(N_img); % average frist N_img images
+             else % use first frame if N_img is not specified
+                if obj.input == 1 % tiff
+                    img = double(imread([obj.pname filesep obj.fnames{obj.frames(1)}]));
+                else % fits
+                    img = fitsread([obj.pname filesep obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [obj.frames(1) obj.frames(1)] }); % read first frame                
+                end
+             end
+            p = find_peaks2d(img, r_find, 0, 0); % finding all possible peaks p has x, y, height, height-bg, I, I-I_bg
+            
             
             close all
             figure('units','normalized','outerposition',[0 0 1 1])
@@ -161,9 +177,15 @@ classdef movie < handle
             % plot
             subplot(1, 2, 1)
             imagesc(img), colorbar, axis image, colormap gray, hold on
-            h(1) = plot(p_3std(:,1)+1, p_3std(:,2)+1, 'ro');
-            h(2) = plot(p_5std(:,1)+1, p_5std(:,2)+1, 'go');
-            h(3) = plot(p_7std(:,1)+1, p_7std(:,2)+1, 'bo');
+            if size(p_3std,1)>0
+                h(1) = plot(p_3std(:,1)+1, p_3std(:,2)+1, 'ro');
+            end
+            if size(p_5std,1)>0
+                h(2) = plot(p_5std(:,1)+1, p_5std(:,2)+1, 'go');
+            end
+            if size(p_7std,1)>0
+                h(3) = plot(p_7std(:,1)+1, p_7std(:,2)+1, 'bo');
+            end
             legend(h, {['3\sigma = ' num2str(round(3*img_std)) ], ['5\sigma = ' num2str(round(5*img_std)) ], ['7\sigma = ' num2str(round(7*img_std)) ]})
                   
             
@@ -175,11 +197,11 @@ classdef movie < handle
             h(2) = vline(5*img_std, 'g');
             h(3) = vline(7*img_std, 'b');
             legend(h, {['3\sigma = ' num2str(round(3*img_std)) ], ['5\sigma = ' num2str(round(5*img_std)) ], ['7\sigma = ' num2str(round(7*img_std)) ]})
-            set(gca, 'XLim', [xhist(1) xhist(end)])
+            set(gca, 'XLim', [0 xhist(end)])
             xlabel('Minimal height'), ylabel('# of peaks found')
             axis square
             
-                       
+            
             % promp
             options.WindowStyle='normal';
             prompt={'Enter min heigth (default=5*sigma):'};
@@ -189,7 +211,8 @@ classdef movie < handle
             close all
             
             obj.h_min = h_min;
-            
+                         
+            p_out = p(find(p(:,4)>=h_min),:);
          end
          
          
@@ -222,6 +245,42 @@ classdef movie < handle
             end
             avg_frame = avg_frame ./ N; 
          end
+         
+         
+         % Fits a PSF to one spot in each frame in fit_frames, at given
+        % positions fit_pos, using fit parameter sigma
+        
+        function [ pos_trace ] = fit_psf_to_movie(obj, fit_frames, fit_pos, sigma)
+        
+            w_fit = 3*sigma;
+            s_x = sigma;
+            s_y = s_x;
+            pos_trace = [];
+            
+            for i=1:size(fit_frames,1)
+                cur_frame = obj.readFrame(fit_frames(i));     
+                x_0 = fit_pos(i,1)+1;
+                y_0 = fit_pos(i,2)+1;
+                A = cur_frame(y_0,x_0);
+                [X,Y] = meshgrid(max(x_0-w_fit,1):min(x_0+w_fit,512),max(y_0-w_fit,1):min(y_0+w_fit,512));
+                Z = cur_frame(max(y_0-w_fit,1):min(y_0+w_fit,512),max(x_0-w_fit,1):min(x_0+w_fit,512));
+                xyz_data=zeros(size(X,1)*size(X,2),3);
+                xyz_data(:,1) = reshape(X, size(X,1)*size(X,2), 1); %make a vector out of matrix X
+                xyz_data(:,2) = reshape(Y, size(Y,1)*size(Y,2), 1); %make a vector out of matrix X
+                xyz_data(:,3) = reshape(Z, size(Z,1)*size(Z,2), 1); %make a vector out of matrix X
+                bg = mean(xyz_data(:,3));
+
+                param_init = [x_0 y_0 s_x s_y A-bg bg];
+                options = optimset('Algorithm','levenberg-marquardt','display','off', 'MaxFunEvals',50000,...
+                    'TolFun',1e-9,'MaxIter',50000, 'TolX', 1e-9); 
+                [param, chi2, residual, exitflag] = lsqcurvefit(@gauss2d_bg, param_init,xyz_data(:,1:2), xyz_data(:,3),[],[], options);
+
+                if exitflag <= 0
+                        display(['WARNING: Fitting gaussian failed. Exitflag: ' num2str(exitflag)])
+                end
+            pos_trace = [pos_trace ; [param chi2]];
+            end
+        end
 
 
     end
