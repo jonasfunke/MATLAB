@@ -6,8 +6,8 @@ run('my_prefs.m')
 
 %% LOAD STACK OF MOVIES
 pname=uigetdir(data_dir,'Choose the folder with all .fits files.');
-files_green = dir([pname filesep 'green*.fits']);
-files_red = dir([pname filesep 'red*.fits']);
+files_green = pickFirstFitsFiles(pname, 'green');
+files_red = pickFirstFitsFiles(pname, 'red');
 
 N_movie = size(files_green,1);
 if size(files_green,1) ~= size(files_red,1)

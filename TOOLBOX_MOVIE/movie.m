@@ -23,14 +23,17 @@ classdef movie < handle
         
         input; % 0=fits, 1=tiff-stack
         fnames; % cell with all filenames, only for tiff-stack
+        
+        N_frame_per_fits; % stores the number of frames in one fits-file
     end
     
     methods
         %constructor
-        function obj = movie(pname, fname, first, last, sequence)
+        function obj = movie(pname, fname, first, last, sequence) % fname is the filename of the first fits-file
             obj.sequence = sequence;
             obj.pname = pname;
-            obj.fname = fname;
+            obj.fname = cell(1,1);
+            obj.fname{1} = fname;
             
             if strcmp(fname(end-2:end), 'tif')
                 obj.input = 1; % read tiff data
@@ -46,10 +49,25 @@ classdef movie < handle
                 obj.sizeY = size(imread([pname filesep obj.fnames{1}]),1);
                 obj.mov_length = length(obj.fnames);
             else % fits
-                obj.info = fitsinfo([obj.pname filesep obj.fname]);
-                obj.sizeX = obj.info.PrimaryData.Size(1); 
-                obj.sizeY = obj.info.PrimaryData.Size(2);
-                obj.mov_length = obj.info.PrimaryData.Size(3);
+                obj.info = cell(1,1);
+                obj.info{1} = fitsinfo([obj.pname filesep obj.fname{1}]);
+                
+                obj.N_frame_per_fits = obj.info{1}.PrimaryData.Size(3);
+                
+                obj.sizeX = obj.info{1}.PrimaryData.Size(1); 
+                obj.sizeY = obj.info{1}.PrimaryData.Size(2);
+                
+                tmp = dir([pname filesep fname(1:end-4) '_X*.fits']); %returns additional  change * to wildcard for 1-2 character/integers
+                for i=1:length(tmp)
+                    obj.fname = [obj.fname tmp(i).name];
+                    obj.info = [obj.info fitsinfo([obj.pname filesep tmp(i).name])];
+                end
+                
+                f_tot = 0; % calculate total number of frames
+                for i=1:length(obj.fname)
+                    f_tot = f_tot + obj.info{i}.PrimaryData.Size(3);           
+                end
+                obj.mov_length = f_tot;
             end
             
             
@@ -76,10 +94,13 @@ classdef movie < handle
          
          %reads one frame
          function [img] = readFrame(obj,framenumber)
+             
               if obj.input == 1 % tif
                     img = double(imread([obj.pname filesep obj.fnames{framenumber}]));
               else
-                    img = fitsread([obj.pname filesep obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [framenumber framenumber] });  % fits               
+                   i_fits = ceil(framenumber/obj.N_frame_per_fits);    % index of fits file
+                   framenumber_effektive = mod(framenumber-1, obj.N_frame_per_fits) +1;
+                   img = fitsread([obj.pname filesep obj.fname{i_fits}],  'Info', obj.info{i_fits}, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [framenumber_effektive framenumber_effektive] });  % fits
               end
          end
          
@@ -104,12 +125,7 @@ classdef movie < handle
             
             display(['Reading frame ' num2str(frames_out(1)) ' to ' num2str(frames_out(end))])
             for i=1:length(frames_out)
-            
-                if obj.input == 1 % tif
-                    tmp(:,:,i) = double(imread([obj.pname filesep obj.fnames{frames_out(i)}]));
-                else
-                    tmp(:,:,i) = fitsread([obj.pname filesep obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [frames_out(i) frames_out(i)] });  % fits               
-                end
+                tmp(:,:,i) = obj.readFrame(frames_out(i));
             end
             
             obj.counter = obj.counter + length(frames_out); 

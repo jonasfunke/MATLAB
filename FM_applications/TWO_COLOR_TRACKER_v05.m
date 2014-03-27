@@ -21,8 +21,8 @@ channel{2} = rgb{colors(2)};
 
 %% LOAD STACK OF MOVIES
 pname=uigetdir(data_dir,'Choose the folder with all .fits files.');
-files_ch1 = dir([pname filesep channel{1} '*.fits']);
-files_ch2 = dir([pname filesep channel{2} '*.fits']);
+files_ch1 = pickFirstFitsFiles(pname, channel{1}); 
+files_ch2 = pickFirstFitsFiles(pname, channel{2});
 
 N_movie = size(files_ch1,1);
 if size(files_ch1,1) ~= size(files_ch2,1)

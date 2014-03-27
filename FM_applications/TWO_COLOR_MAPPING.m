@@ -32,8 +32,8 @@ if vars{3}
 end
 %% LOAD STACK OF MOVIES/FILES
 pname=uigetdir(data_dir,'Choose the folder with all .fits files.');
-files_ch1 = dir([pname filesep channel{1} '*.fits']);
-files_ch2 = dir([pname filesep channel{2} '*.fits']);
+files_ch1 = pickFirstFitsFiles(pname, channel{1});
+files_ch2 = pickFirstFitsFiles(pname, channel{2});
 
 N_movie = size(files_ch1,1); % number of movies
 if size(files_ch1,1) ~= size(files_ch2, 1)
@@ -72,8 +72,8 @@ ch1 = cell(N_movie,1);
 ch2 = cell(N_movie,1);  
 
 for i=1:N_movie
-    ch1{i} = movie(pname, files_ch1.name, first, last, sequence_1); % pname, fname, first, last, sequence
-    ch2{i} = movie(pname, files_ch2.name, first, last, sequence_2); % pname, fname, first, last, sequence
+    ch1{i} = movie(pname, files_ch1(i).name, first, last, sequence_1); % pname, fname, first, last, sequence
+    ch2{i} = movie(pname, files_ch2(i).name, first, last, sequence_2); % pname, fname, first, last, sequence
 end
 
 %% determine thresholds and find peaks

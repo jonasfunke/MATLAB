@@ -20,7 +20,7 @@ channel{1} = rgb{colors(1)};
 
 %% LOAD STACK OF MOVIES
 pname=uigetdir(data_dir,'Choose the folder with all .fits files.');
-files_ch1 = dir([pname filesep channel{1} '*.fits']);
+files_ch1 = pickFirstFitsFiles(pname, channel{1}); 
 N_movie = size(files_ch1,1);
 
 path_out = [pname filesep datestr(now, 'yyyy-mm-dd_HH-MM') '_analysis'];
