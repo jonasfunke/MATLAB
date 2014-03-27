@@ -5,7 +5,7 @@ run('my_prefs'); path0=cd;
 %% parameters
 input = {'Box size [pixel]:', 'Number of class references:', 'Include mirror (0=no, 1=yes):',... % sample options
     'Binning:', 'Radius of high-pass filter [pixel]:', 'Angel resolution [deg]:'};
-input_default = {'170', '1', '1', '4', '-1', '5'};
+input_default = {'200', '1', '1', '4', '15', '5'};
 tmp = inputdlg(input, 'Parameters', 1, input_default);
 box_size_real = round(str2double(tmp(1))); % size of particle on real image, HAS TO BE EVEN
 mirror = str2double(tmp(3)); % include mirror transformation, 0=no, 1= yes

@@ -104,6 +104,7 @@ classdef movie < handle
             
             display(['Reading frame ' num2str(frames_out(1)) ' to ' num2str(frames_out(end))])
             for i=1:length(frames_out)
+            
                 if obj.input == 1 % tif
                     tmp(:,:,i) = double(imread([obj.pname filesep obj.fnames{frames_out(i)}]));
                 else
