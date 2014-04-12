@@ -9,7 +9,7 @@ pname=uigetdir(data_dir,'Choose the folder with all .fits files.');
 files_green = pickFirstFitsFiles(pname, 'green');
 files_red = pickFirstFitsFiles(pname, 'red');
 
-N_movie = size(files_green,1);
+N_movie = size(files_green,2);
 if size(files_green,1) ~= size(files_red,1)
     disp('WARNING: not same number of movie files!')
 end
@@ -52,9 +52,9 @@ da = cell(N_movie,1);
 aa = cell(N_movie,1);
 
 for i=1:N_movie
-    dd{i} = movie(pname, files_green(i).name, first, last, sequence_dd); % pname, fname, first, last, sequence
-    da{i} = movie(pname, files_red(i).name, first, last, sequence_da); % pname, fname, first, last, sequence
-    aa{i} = movie(pname, files_red(i).name, first, last, sequence_aa); % pname, fname, first, last, sequence
+    dd{i} = movie(pname, files_green{i}, first, last, sequence_dd); % pname, fname, first, last, sequence
+    da{i} = movie(pname, files_red{i}, first, last, sequence_da); % pname, fname, first, last, sequence
+    aa{i} = movie(pname, files_red{i}, first, last, sequence_aa); % pname, fname, first, last, sequence
 end
 
 
@@ -295,8 +295,11 @@ cur_fig = figure('Visible','off', 'PaperPositionMode', 'manual','PaperUnits','ce
 h = waitbar(0,'Printing traces... please wait');
 
 for i=1:size(traces,1)
-    Idd = traces{i,1}(:,4)-traces{i,1}(end,4);
-    Ida = traces{i,2}(:,4)-traces{i,2}(end,4);
+    %Idd = traces{i,1}(:,4)-traces{i,1}(end,4);
+    %Ida = traces{i,2}(:,4)-traces{i,2}(end,4);
+    
+    Idd = traces{i,1}(:,4);
+    Ida = traces{i,2}(:,4);
     
     x_dd = traces{i,1}(1,2)+1;
     y_dd = traces{i,1}(1,3)+1;
@@ -336,15 +339,16 @@ for i=1:size(traces,1)
     
     
     subplot(3,3, 4:6)
-    plot(traces{i,1}(:,1), traces{i,1}(:,4), 'g', traces{i,2}(:,1), traces{i,2}(:,4), 'b', traces{i,3}(:,1), traces{i,3}(:,4), 'r', 'Linewidth', 1)
+    plot(traces{i,3}(:,1), traces{i,3}(:,4)./max(traces{i,3}(:,4)), 'r', traces{i,1}(:,1), traces{i,1}(:,4)./max(traces{i,1}(:,4)), 'g', traces{i,2}(:,1), traces{i,2}(:,4)./max(traces{i,2}(:,4)), 'b',  'Linewidth', 1)
      ylabel('Integr. Intensity')
     
     
     subplot(3,3, 7:9)
     plot(traces{i,1}(:,1), Ida ./ (Idd+Ida), 'k', 'Linewidth', 1)
-    xlabel('Framenumber'), ylabel('E_app')
 
-    set(gca, 'YLim', [-0.1 1])
+    xlabel('Framenumber'), ylabel('E_app')
+    set(gca, 'YLim', [min(Ida ./ (Idd+Ida)) max(Ida ./ (Idd+Ida))])
+    %set(gca, 'YLim', [-0.1 1])
     
     print(cur_fig, '-dtiff', '-r300', [path_fig filesep 'trace_' sprintf('%.03i',i) '.tif'])
 

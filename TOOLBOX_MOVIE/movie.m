@@ -176,7 +176,7 @@ classdef movie < handle
                 if obj.input == 1 % tiff
                     img = double(imread([obj.pname filesep obj.fnames{obj.frames(1)}]));
                 else % fits
-                    img = fitsread([obj.pname filesep obj.fname],  'Info', obj.info, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [obj.frames(1) obj.frames(1)] }); % read first frame                
+                    img = fitsread([obj.pname filesep obj.fname{1}],  'Info', obj.info{1}, 'PixelRegion',{[1 obj.sizeX], [1 obj.sizeY], [obj.frames(1) obj.frames(1)] }); % read first frame                
                 end
              end
             p = find_peaks2d(img, r_find, 0, 0); % finding all possible peaks p has x, y, height, height-bg, I, I-I_bg
@@ -273,8 +273,10 @@ classdef movie < handle
             s_x = sigma;
             s_y = s_x;
             pos_trace = [];
+            counter = 0;
+            i=1;
             
-            for i=1:size(fit_frames,1)
+            while counter<20 && i<=size(fit_frames,1)
                 cur_frame = obj.readFrame(fit_frames(i));     
                 x_0 = fit_pos(i,1)+1;
                 y_0 = fit_pos(i,2)+1;
@@ -289,13 +291,23 @@ classdef movie < handle
 
                 param_init = [x_0 y_0 s_x s_y A-bg bg];
                 options = optimset('Algorithm','levenberg-marquardt','display','off', 'MaxFunEvals',50000,...
-                    'TolFun',1e-9,'MaxIter',50000, 'TolX', 1e-9); 
-                [param, chi2, residual, exitflag] = lsqcurvefit(@gauss2d_bg, param_init,xyz_data(:,1:2), xyz_data(:,3),[],[], options);
-
+                    'TolFun',1e-9,'MaxIter',1000, 'TolX', 1e-9); 
+                [param, chi2, residual, exitflag, output] = lsqcurvefit(@gauss2d_bg, param_init,xyz_data(:,1:2), xyz_data(:,3),[],[], options);
+                display([num2str(output.iterations) ', ' num2str(output.funcCount)])
                 if exitflag <= 0
                         display(['WARNING: Fitting gaussian failed. Exitflag: ' num2str(exitflag)])
+                        counter = counter + 1
+                        if counter == 20
+                            display('Moving on to next spot')
+                        end
                 end
+ 
+                if exitflag > 0
+                    counter = 0;
+                end
+                
             pos_trace = [pos_trace ; [param chi2]];
+            i=i+1;
             end
         end
 

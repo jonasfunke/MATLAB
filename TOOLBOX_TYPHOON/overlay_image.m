@@ -17,7 +17,7 @@ pause(0.1)
 A = double(imgA(pos(2):pos(2)+pos(4)  ,   pos(1):pos(1)+pos(3) ) );
 B = double(imgB(pos(2):pos(2)+pos(4)  ,   pos(1):pos(1)+pos(3) ) );
 %%
-[cc, shift, B_shift] = xcorr2_bounded(A, B, search_range);
+[cc, shift, B_shift] = xcorr2_bounded(A, B, search_range, 1);
 dx_min = shift(1);
 dy_min = shift(2);
 

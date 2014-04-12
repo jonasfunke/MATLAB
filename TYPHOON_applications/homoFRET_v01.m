@@ -86,72 +86,27 @@ mkdir(path_out_plots)
 [aa_bg, aa_x_min, aa_y_min]= overlay_image(da_bg, aa_bg, 10);
 
 %% leakage and direct-excitation correction factors
-close all
-button = questdlg('Use leak/dir-corrections from this gel or load old data?','Leak/Dir','This Gel','Load Data','No correction', 'Load Data');
-correction = 1;
-if strcmp(button,'This Gel') %load old data
-    leak_dir  = calculate_corrections(dd_bg, da_bg, aa_bg, [path_out filesep prefix_out '_correction.txt']);
-    da_cor = da_bg - leak_dir(1,1).*dd_bg - leak_dir(2,1).*aa_bg;%-leak_dir(1,2)-leak_dir(2,2); 
-    display('Used this gel to correct.')
-else
-    if strcmp(button,'Load Data')
-        cd(data_dir)
-        [fname_cor pname_cor] = uigetfile('.txt', 'Choose file with correction matrix');
-        leak_dir = load([pname_cor fname_cor]);
-        cd(path0)
-        da_cor = da_bg - leak_dir(1,1).*dd_bg - leak_dir(2,1).*aa_bg; 
-        display('Used old data to correct.')
-    else
-        display('No correction will be done.')
-        correction = 0;
-        da_cor = da_bg; 
-        leak_dir = [1 1 ; 1 1 ];
-    end
-end
-
-
-%% plot uncorrected and corrected images
-scrsz = get(0,'ScreenSize');
-cur_fig = figure('Visible','on','OuterPosition',[ 1 scrsz(4) scrsz(3) scrsz(4)/1.5], 'PaperPositionMode', 'auto'); % figure('Visible','off');%left bottom width height
-subplot(1,2,1)
-imagesc(da_bg), axis image, colormap gray
-title('D->A image, Uncorrected')
-subplot(1,2,2)
-imagesc(da_cor), axis image, colormap gray
-title('D->A image, Leak/Dir-corrected')
-pause(2)
-close all
+da_cor = da_bg;
+leak_dir = [1 1 ; 1 1 ];
+correction = 0;
 
 %% gamma correction
-button = questdlg('Do gamma-correction?','Gamma correction','This Gel','Load gamma','No','No');
-if strcmp(button,'This Gel') 
-    % selct reference for gamma-factor determination
-    cd(pathname_dd)
-    [filename_ref, pathname_ref]=uigetfile('*.tif','Select reference image (Cy2): ');
-    cd(path0)
-    ref_raw = -double(imread([pathname_ref filesep filename_ref])); 
-    ref_bg = bg_correct_ui(ref_raw, 'Reference image');
-
-
-    gamma = estimate_gamma_bands(dd_bg, da_cor, aa_bg, ref_bg) ; 
-    save([path_out filesep prefix_out '_gamma.txt'], 'gamma' ,'-ascii')
-
-
-else
-    if strcmp(button,'Load gamma') 
-        cd(data_dir)
-        [fname_gamma pname_gamma] = uigetfile('.txt', 'Choose file with gamma-factor');
-        gamma = load([pname_gamma fname_gamma]);
-        cd(path0)     
-    else
-        gamma =1 ;
-    end
-end
+gamma = 1;
 
 %% find lanes
-[auto_pos , area] = find_lanes(da_bg+aa_bg+dd_bg);
+[auto_pos , area] = find_lanes(aa_bg+dd_bg);
 area = [min(area(:,1)) min(area(:,2)) max(area(:,1)+area(:,3))-min(area(:,1)) max(area(:,2)+area(:,4))-min(area(:,2))]; %area which surrounds all subareas
 n_lanes = size(auto_pos,1);
+
+%% find control lanes
+button = questdlg('Select controls?','Controls','Yes','No', 'Yes');
+correction = 1;
+if strcmp(button, 'Yes') 
+    [auto_pos_control , area_control] = find_lanes(aa_bg+dd_bg);
+    auto_pos = [auto_pos; auto_pos_control]; % append to auto_pos
+    n_lanes = n_lanes + size(auto_pos_control,1);
+end
+
 %% generate profiles lanes
 
 lanes = cell(0, 7);
@@ -171,35 +126,6 @@ for i=1:size(auto_pos,1)
     new_lane{1,7} = i+9; 
     lanes = [lanes; new_lane];
 
-end
-%% Naming lanes
-close all
-button = questdlg('Name lanes?','Name lanes','Yes','No','No');
-if strcmp(button,'Yes') %load old data
-    for i=1:n_lanes
-        
-        subplot(2, 1, 1)
-        imagesc(da_cor), axis image, colormap gray
-        title('D->A')
-        hold on
-        rectangle('Position', auto_pos(i,:), 'EdgeColor', 'r')
-        
-        subplot(2, 1, 2)
-        imagesc(da_cor), axis image, colormap gray
-        title('D->A')
-        hold on
-        for j=1:i-1
-            rectangle('Position', lanes{j,5}, 'EdgeColor', 'r')
-            text(double(lanes{j,5}(1)), double(lanes{j,5}(2)), lanes{j,6}, 'Fontsize', 8, 'Color' , 'r', 'HorizontalAlignment','left', 'VerticalAlignment', 'bottom')
-        end
-        hold off
-
-        lane_name = inputdlg({'Name of lane:', 'Length of spacer:'}, 'Lane properties' , 1, {['Lane ' num2str(1)], num2str(i+9)} );
-        lanes{1,7} = str2double(lane_name{2});
-        lanes{1,6} = lane_name{1};
-        
-        display([ lane_name{1} ':   spacer=' lane_name{2}])
-    end
 end
 
 
@@ -228,17 +154,19 @@ for i=1:size(lanes,1)
     fit_da(i,:) = p_da;
     fit_aa(i,:) = p_aa;
    
-    % filter da signal for maximum determination
-    sigma_filter = 2;
-    data = lanes{i,2};
-    threeSigma = ceil(3*sigma_filter);
-    g = exp(-(-threeSigma:threeSigma).^2/2/sigma_filter^2);
-    da = conv(data, g, 'same') ./ conv(ones(size(data)), g, 'same');
-    
+
     % FIND PEAKS IN DA-channel
-    peaks_da = find_peaks1d(da, 20, 0.5*max(da), 1); % window size 20, h_min=0.5*max, 1 = absolute height
-    y_mean = peaks_da(end);  % use the last found peak (leading band)
-    dy = 5; % integration width
+%    peaks_da = find_peaks1d(da, 20, 0.5*max(da), 1); % window size 20, h_min=0.5*max, 1 = absolute height
+%    y_mean = peaks_da(end);  % use the last found peak (leading band)
+%    dy = 5; % integration width
+    
+    % get the integration region from maximum
+    [dd_max, dd_imax] = max(lanes{i,1});
+    [da_max, da_imax] = max(lanes{i,2});
+    [aa_max, aa_imax] = max(lanes{i,3});
+    
+    y_mean = round((dd_imax + aa_imax)/2);
+    dy = 2*5;
     
     % sum lanes
     I_sum(i,1) = sum(lanes{i,1}(y_mean-dy:y_mean+dy));
@@ -264,62 +192,31 @@ for i=1:size(lanes,1)
     bands{i,4} = lanes{i,7};
     
 
-    
-   %plot(lanes{i,4},lanes{i,1},'g',  lanes{i,4},lanes{i,2},'b',  lanes{i,4},lanes{i,3},'r' ), hold on
-   %plot(y, da, 'b--')
-   %plot(y, gauss1d(p_dd, y), 'g--', y, gauss1d(p_da, y), 'b--', y, gauss1d(p_aa, y), 'r--')
-   %vline(y(y_mean-dy), 'k--')
-  % vline(y(y_mean+dy), 'k--')
-  % vline(y(y_mean), 'k')
- %  hold off
-   %pause
+   %{ 
+   plot(lanes{i,4},lanes{i,1},'g',  lanes{i,4},lanes{i,2},'b',  lanes{i,4},lanes{i,3},'r' ), hold on
+   plot(y, gauss1d(p_dd, y), 'g--', y, gauss1d(p_da, y), 'b--', y, gauss1d(p_aa, y), 'r--')
+   vline(y(y_mean-dy), 'k--')
+   vline(y(y_mean+dy), 'k--')
+   vline(y(y_mean), 'k')
+   hold off
+   pause
    %pause(1)
+    %}
 end
-
-
 close all
 
-%% write corrected images
-disp('Writing images')
-close all
-%imwrite(uint16(da_cor), [path_out filesep 'da_cor.tif'] , 'tif')
-%imwrite(uint16(da_cor-min(min(da_cor))), [path_out filesep 'da_cor2.tif'] , 'tif')
-%imwrite(uint16(-da_cor+abs(min(min(-da_cor)))), [path_out filesep 'da_cor3.tif'] , 'tif')
+%% calculate ratios
+AAdDD = zeros(n_lanes, 1);
+DDdAA = zeros(n_lanes, 1);
 
-t = Tiff([path_out filesep 'da_cor.tif'],'w');
-t.setTag('Photometric',Tiff.Photometric.MinIsWhite);
-t.setTag('BitsPerSample',16);
-t.setTag('SampleFormat',Tiff.SampleFormat.UInt);
-t.setTag('ImageLength',size(da_cor,1));
-t.setTag('ImageWidth',size(da_cor,2));
-t.setTag('SamplesPerPixel',1);
-t.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
-t.write( uint16(da_cor-min(da_cor(:)))  );
-t.close();
-
-t = Tiff([path_out filesep 'da_cor_2.tif'],'w');
-t.setTag('Photometric',Tiff.Photometric.MinIsBlack);
-t.setTag('BitsPerSample',16);
-t.setTag('SampleFormat',Tiff.SampleFormat.UInt);
-t.setTag('ImageLength',size(da_cor,1));
-t.setTag('ImageWidth',size(da_cor,2));
-t.setTag('SamplesPerPixel',1);
-t.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
-t.write( uint16(da_cor-min(da_cor(:)))  );
-t.close();
-
-t = Tiff([path_out filesep 'da_cor+bg.tif'],'w');
-t.setTag('Photometric',Tiff.Photometric.MinIsWhite);
-t.setTag('BitsPerSample',16);
-t.setTag('SampleFormat',Tiff.SampleFormat.UInt);
-t.setTag('ImageLength',size(da_cor,1));
-t.setTag('ImageWidth',size(da_cor,2));
-t.setTag('SamplesPerPixel',1);
-t.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
-t.write( uint16(da_cor+bg_da)  );
-t.close();
-
-
+for i=1:n_lanes
+    pos = bands{i,2};
+    DD = dd_bg( pos(2):pos(2)+pos(4) , pos(1):pos(1)+pos(3) );
+    AA = aa_bg( pos(2):pos(2)+pos(4) , pos(1):pos(1)+pos(3) );
+    
+    AAdDD(i,:) = calculateRation(AA, DD, 0);
+    DDdAA(i,:) = calculateRation(DD, AA, 0);
+end
 
 %% save all the data
 disp('Saving data...')
@@ -330,6 +227,53 @@ save([path_out filesep prefix_out '_data_FRET.mat'], 'I_sum', 'gamma')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTTING STUFF %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 disp('Generating plots...')
+
+%%
+
+
+n = 10:50;
+l = (27/47.5)*dsDNA_distances(n)/10; %nm assuming B-Form DNA
+
+R = AAdDD(1:41);
+R_open = AAdDD(42);
+R_controls = AAdDD(43:end);
+
+S_top = mean(R_controls(1:2));
+S_bot = mean(R_controls(3:4));
+S = (S_bot + S_top)/2;
+
+%{
+close all
+subplot(3, 1, 1)
+plot(n, R), hold on
+hline(R_open)
+hline(R_controls)
+set(gca, 'XLim', [n(1) n(end)])
+
+subplot(3, 1, 2)
+plot(l, R), hold on
+hline(R_open)
+hline(R_controls)
+set(gca, 'XLim', [l(1) l(end)])
+
+subplot(3, 1, 3)
+plot(l, 2*R/S), hold on
+set(gca, 'XLim', [l(1) l(end)])
+%}
+close all    
+fig_dim =[20 8];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+
+plot(l, R/S, 'b.-'), hold on
+set(gca, 'XLim', [l(1) l(end)])
+xlabel('Estimated distance between dyes [nm]')
+ylabel('Relative Intensity normalized')
+
+print(cur_fig, '-dtiff', '-r500', [path_out filesep 'Quenching_curve.tif'])
+
+
+
+
 %% Plot profiles seperately 
 path_out_profiles = [path_out filesep 'profiles'];
 mkdir(path_out_profiles)

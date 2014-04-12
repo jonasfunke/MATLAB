@@ -1,4 +1,4 @@
-function [ cc, best_shift, B_out ] = xcorr2_bounded( A, B, search_range)
+function [ cc, best_shift, B_out ] = xcorr2_bounded( A, B, search_range, status)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -8,8 +8,9 @@ function [ cc, best_shift, B_out ] = xcorr2_bounded( A, B, search_range)
     cc_max = 0;
     cc = zeros(search_range*2+1, search_range*2+1);
 
-    h = waitbar(0,'Searching for optimal overlay... please wait');
-
+    if status
+        h = waitbar(0,'Searching for optimal overlay... please wait');
+    end
     %display('Searching for optimal overlay... please wait')
     counter = 0;
     for dy=-search_range:search_range
@@ -28,12 +29,15 @@ function [ cc, best_shift, B_out ] = xcorr2_bounded( A, B, search_range)
 
             counter = counter+1;
             frac = counter / (2*search_range+1).^2;
-            waitbar( frac , h, 'Searching for optimal overlay... please wait')
-
+            if status
+                waitbar( frac , h, 'Searching for optimal overlay... please wait')
+            end
         end
     end
     
-    close(h)
+    if status
+        close(h)
+    end
     display(['Optimal overlay found for dx = ' num2str(dx_best) ' and dy = ' num2str(dy_best) ', cc_max = ' num2str(cc_max)])
 
     if abs(dx_best)==search_range || abs(dy_best)==search_range

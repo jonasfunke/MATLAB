@@ -16,7 +16,7 @@ filename = cell(n_img, 1);
 pathname = cell(n_img, 1);
 cd(data_dir)
 for i=1:n_img
-    [filename{i} pathname{i}]=uigetfile('*.tif',['Select image ' num2str(i) ' of ' num2str(n_img)]);
+    [filename{i}, pathname{i}]=uigetfile('*.tif',['Select image ' num2str(i) ' of ' num2str(n_img)]);
     cd(pathname{i})
 end
 cd(path0)
