@@ -166,7 +166,7 @@ for i=1:size(lanes,1)
     [aa_max, aa_imax] = max(lanes{i,3});
     
     y_mean = round((dd_imax + aa_imax)/2);
-    dy = 2*5;
+    dy = 5;
     
     % sum lanes
     I_sum(i,1) = sum(lanes{i,1}(y_mean-dy:y_mean+dy));
@@ -206,16 +206,15 @@ end
 close all
 
 %% calculate ratios
-AAdDD = zeros(n_lanes, 1);
-DDdAA = zeros(n_lanes, 1);
+ratio = zeros(n_lanes, 2);
 
 for i=1:n_lanes
     pos = bands{i,2};
     DD = dd_bg( pos(2):pos(2)+pos(4) , pos(1):pos(1)+pos(3) );
     AA = aa_bg( pos(2):pos(2)+pos(4) , pos(1):pos(1)+pos(3) );
     
-    AAdDD(i,:) = calculateRation(AA, DD, 0);
-    DDdAA(i,:) = calculateRation(DD, AA, 0);
+    ratio(i,1) = calculateRation(DD, AA, 0); % DD / AA
+    ratio(i,2) = calculateRation(AA, DD, 0); % AA / DD
 end
 
 %% save all the data
@@ -223,53 +222,10 @@ disp('Saving data...')
 save([path_out filesep prefix_out '_data.mat'])
 
 %% sava data for fret only
-save([path_out filesep prefix_out '_data_FRET.mat'], 'I_sum', 'gamma')
+save([path_out filesep prefix_out '_data_ratio.mat'], 'ratio','I_sum')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTTING STUFF %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 disp('Generating plots...')
-
-%%
-
-
-n = 10:50;
-l = (27/47.5)*dsDNA_distances(n)/10; %nm assuming B-Form DNA
-
-R = AAdDD(1:41);
-R_open = AAdDD(42);
-R_controls = AAdDD(43:end);
-
-S_top = mean(R_controls(1:2));
-S_bot = mean(R_controls(3:4));
-S = (S_bot + S_top)/2;
-
-%{
-close all
-subplot(3, 1, 1)
-plot(n, R), hold on
-hline(R_open)
-hline(R_controls)
-set(gca, 'XLim', [n(1) n(end)])
-
-subplot(3, 1, 2)
-plot(l, R), hold on
-hline(R_open)
-hline(R_controls)
-set(gca, 'XLim', [l(1) l(end)])
-
-subplot(3, 1, 3)
-plot(l, 2*R/S), hold on
-set(gca, 'XLim', [l(1) l(end)])
-%}
-close all    
-fig_dim =[20 8];
-cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
-
-plot(l, R/S, 'b.-'), hold on
-set(gca, 'XLim', [l(1) l(end)])
-xlabel('Estimated distance between dyes [nm]')
-ylabel('Relative Intensity normalized')
-
-print(cur_fig, '-dtiff', '-r500', [path_out filesep 'Quenching_curve.tif'])
 
 
 
@@ -316,32 +272,6 @@ for i=1:size(lanes,1)
 end
 close all
 
-
-%% plot FRET-profile of all lanes
-close all
-fig_dim =[20 8];
-cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
-hold all
-h = zeros(1, size(lanes,1));
-for i=1:size(lanes,1)
-    E = lanes{i,2} ./ (lanes{i,2} + gamma * lanes{i,1});
-   for j=1:size(E,1)
-       if lanes{i,2}(j) < 0
-           E(j) = 0;
-       end
-       
-       if lanes{i,1}(j) < 0
-           E(j) = 0;
-       end
-   end
-   h(i) = plot(lanes{i,4}, E, 'Linewidth', 1);
-end
-set(gca, 'YLim', [0 1])
-legend(h, lanes{:,6} )
-xlabel('Pixel')
-ylabel('FRET efficiency')
-title({'FRET efficiency', ['gamma = ' num2str(gamma)]})
-print(cur_fig, '-dtiff' , '-r500', [path_out_plots filesep 'FRET_profiles.tif']); %save figure
 
   
 %% plot migration distance and width of peak
@@ -688,166 +618,4 @@ end
 
 close all
 display('...done')
-
-%%
-
-E_app = [I_sum(:,2) ./ (I_sum(:,2) + I_sum(:,1))];
-E = [I_sum(:,2) ./ (I_sum(:,2) + gamma*I_sum(:,1))];
-
-l = dsDNA_distances([10:40])/10; %nm assuming B-Form DNA
-E_calib = E_app(1:31);
-E_gfp = E_app(32:44);
-%E_gfp = E_app([32:43 45]); % gel from 2014-03-07
-
-%
-m = [
-0   0   0.01
-3	132	47.1241
-3	157	23.3387
-3	198	23.0822
-3	204	27.6979
-3	212	39.3466
-26	132	14.4572
-%26	157	35.1685
-%26	198	37.1143
-26	212	25.7755
-132	157	39.5715
-132	198	38.3533
-132	204	29.3513
-132	212	30.8227
-157	198	15.6155
-%157	204	30.9032
-%198	204	20.1488
-%198	212	42.9572
-];
-%
-
-%{
-% for gel from 2014-03-07
-m = [
-3	132	47.1241
-0   0   0.01
-3	198	23.0822
-3	157	23.3387
-3	212	39.3466
-3	204	27.6979
-26	212	25.7755
-26	132	14.4572
-132	198	38.3533
-132	157	39.5715
-132	212	30.8227
-132	204	29.3513
-157	198	15.6155
-];
-%}
-d_crystal = m(:,3)/10;
-
-gfp = cell(1,size(m,1));
-for i=1:size(m,1)
-    gfp{i} = [num2str(m(i,1)) '-' num2str(m(i,2))];
-end
-
-cc = varycolor(length(d_crystal));
-
-%%
-close all
-fig_dim = [10 10];
-cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
-
-plot( interp1(E_calib, l, [min(E_calib):0.001:max(E_calib)], 'linear'), [min(E_calib):0.001:max(E_calib)], 'b', l, E_calib, 'k.'), hold on
-legend({'Linear Interpolation', 'Calibration data'})
-
-set(gca, 'XLim', [0 20], 'YLim', [0 1])
-xlabel('C5-C5 distance [nm]'), ylabel('app. FRET Efficiency')
-for i=1:length(d_crystal)
-    hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
-end
-
-print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'calibration_curve.tif'])
-
-
-%%
-close all
-fig_dim = [20 7.5];
-cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
-
-d_exp =  interp1(E_calib,l, E_gfp, 'linear'); %measured distance from interpolation
-
-cc = varycolor(length(d_crystal));
-
-ylim = [0 1];
-
-subplot(1, 2, 1)
-plot( interp1(E_calib, l, [min(E_calib):0.001:max(E_calib)], 'linear'), [min(E_calib):0.001:max(E_calib)], 'b', l, E_calib, 'k.'), hold on
-legend({'Linear Interpolation', 'Calibration data'})
-
-set(gca, 'XLim', [0 20], 'YLim', ylim)
-xlabel('C5-C5 distance [nm]'), ylabel('app. FRET Efficiency')
-for i=1:length(d_crystal)
-    hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
-end
-
-subplot(1, 2, 2)
-h = zeros(length(d_crystal), 1);
-for i=1:length(d_crystal)
-    bar(i, E_gfp(i), 'FaceColor', cc(i,:)), hold on
-end
-for i=1:length(d_crystal)
-    h(i) =    hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
-end
-
-ylabel('app. FRET Efficiency')
-xlabel('GFP-mutant')
-set(gca, 'YLim', ylim)
-
-print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'calibration_samples.tif'])
-
-%%
-close all
-fig_dim = [15 15];
-cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
-h = zeros(length(d_exp)+1,1)' ;
-for i=[1:length(d_exp)]
-    h(i) = plot(d_crystal(i), d_exp(i), 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10); hold on
- end
-set(gca, 'XLim', [0 14], 'YLim', [0 14]), axis square
-set(gca, 'XTick', [0:2:14], 'YTick', [0:2:14])
-
-i=[1:length(d_exp)];
-[c, S] = polyfit(d_crystal(i), d_exp(i), 1);
-
-ste = sqrt(diag(inv(S.R)*inv(S.R')).*S.normr.^2./S.df);
-
-
-h(end) = plot([0 15], c(1)*[0 15]+c(2));
-
-legend(h, [gfp {['Fit, slope = ' num2str(round(c(1)*100)/100) '+-' num2str(round(ste(1)*100)/100) ', offset = ' num2str(round(c(2)*100)/100)  '+-' num2str(round(ste(2)*100)/100)  ]}], 'Location', 'Southeast')
-grid on
-xlabel('Separation from crystal structure [nm]')
-ylabel('Separation measured [nm]')
-
-print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal.tif'])
-
-%%
-close all
-fig_dim = [20 20];
-cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
-h = zeros(length(d_exp)+1,1)' ;
-for i=[1:length(d_exp)]
-    h(i) = plot(d_crystal(i), d_exp(i)-c(2), 'o', 'MarkerFaceColor', cc(i,:), 'MarkerEdgeColor', [0 0 0], 'Markersize', 10); hold on
-end
-set(gca, 'XLim', [0 6], 'YLim', [0 6]), axis square
-set(gca, 'XTick', [0:2:14], 'YTick', [0:2:14])
-h(end) = plot([0 15], c(1)*[0 15]);
-
-legend(h, [gfp {['Fit, slope = ' num2str(round(c(1)*100)/100) '+-' num2str(round(ste(1)*100)/100) ', offset = ' num2str(round(c(2)*100)/100)  '+-' num2str(round(ste(2)*100)/100)  ]}], 'Location', 'best')
-grid on
-xlabel('Separation from crystal structure [nm]')
-ylabel('Separation measured [nm]')
-
-print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal_offset-corrected.tif'])
-
-%%
-dlmwrite([path_out_plots filesep 'mutant_distance_data.txt'] , [m d_exp*0.34], '\t')
-dlmwrite([path_out_plots filesep 'calibration_data.txt'] , [l E_calib], '\t')
 
