@@ -94,7 +94,7 @@ pos = donly{5};
 lane_dd = dd_bg(pos(2):pos(2)+pos(4),pos(1):pos(1)+pos(3));
 lane_da = da_bg(pos(2):pos(2)+pos(4),pos(1):pos(1)+pos(3));
 
-[cc, shift, lane_da_shift] = xcorr2_bounded(lane_dd, lane_da, 5); % find best overlay of images
+[cc, shift, lane_da_shift] = xcorr2_bounded(lane_dd, lane_da, 5, 0); % find best overlay of images
 
 x_raw = reshape(lane_dd, size(lane_dd,1)*size(lane_dd,2), 1);
 y_raw = reshape(lane_da_shift, size(lane_da_shift,1)*size(lane_da_shift,2), 1);
@@ -138,7 +138,7 @@ pos = aonly{5};
 lane_aa = aa_bg(pos(2):pos(2)+pos(4),pos(1):pos(1)+pos(3));
 lane_da = da_bg(pos(2):pos(2)+pos(4),pos(1):pos(1)+pos(3));
 
-[cc, shift, lane_da_shift] = xcorr2_bounded(lane_aa, lane_da, 5); % find best overlay of images
+[cc, shift, lane_da_shift] = xcorr2_bounded(lane_aa, lane_da, 5, 0); % find best overlay of images
 
 x_raw = reshape(lane_aa, size(lane_aa,1)*size(lane_aa,2), 1);
 y_raw = reshape(lane_da_shift, size(lane_da_shift,1)*size(lane_da_shift,2), 1);

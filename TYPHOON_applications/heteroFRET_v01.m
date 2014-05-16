@@ -85,10 +85,12 @@ mkdir(path_out_plots)
 [dd_bg, da_x_min, da_y_min] = overlay_image(da_bg, dd_bg, 10);
 [aa_bg, aa_x_min, aa_y_min]= overlay_image(da_bg, aa_bg, 10);
 
+
 %% leakage and direct-excitation correction factors
-da_cor = da_bg;
-leak_dir = [1 1 ; 1 1 ];
-correction = 0;
+correction = 1;
+leak_dir  = calculate_corrections(dd_bg, da_bg, aa_bg, [path_out filesep prefix_out '_correction.txt']);
+da_cor = da_bg - leak_dir(1,1).*dd_bg - leak_dir(2,1).*aa_bg;%-leak_dir(1,2)-leak_dir(2,2); 
+
 
 %% gamma correction
 gamma = 1;
@@ -130,7 +132,6 @@ end
 
 
 %% fit gaussian close to maxima
-options = optimset('Algorithm','levenberg-marquardt','display','off', 'MaxFunEvals',10000,'TolFun',1e-9,'MaxIter',10000, 'TolX', 1e-9); %'Algorithm','levenberg-marquardt',
 bands = cell(0,5); % pos, label, spacer lenbth
 bands_fit = cell(size(lanes,1),3);
 
@@ -165,11 +166,10 @@ for i=1:size(lanes,1)
     [da_max, da_imax] = max(lanes{i,2});
     [aa_max, aa_imax] = max(lanes{i,3});
     
-       y_weighted = round(     (dd_max*dd_imax + aa_max*aa_imax)/(dd_max+aa_max)    );
+    
+    y_weighted = round(     (dd_max*dd_imax + aa_max*aa_imax)/(dd_max+aa_max)    );
     
     y_mean = y_weighted; %round((dd_imax + aa_imax)/2);
-    
-    %y_mean = round((dd_imax + aa_imax)/2);
     dy = 5;
     
     % sum lanes
@@ -195,13 +195,15 @@ for i=1:size(lanes,1)
     bands{i,3} = lanes{i,6};
     bands{i,4} = lanes{i,7};
     
-
-   %{ 
+    %{
+   y = lanes{i,4};
    plot(lanes{i,4},lanes{i,1},'g',  lanes{i,4},lanes{i,2},'b',  lanes{i,4},lanes{i,3},'r' ), hold on
    plot(y, gauss1d(p_dd, y), 'g--', y, gauss1d(p_da, y), 'b--', y, gauss1d(p_aa, y), 'r--')
    vline(y(y_mean-dy), 'k--')
    vline(y(y_mean+dy), 'k--')
    vline(y(y_mean), 'k')
+   vline(y(y_weighted), 'b')
+
    hold off
    pause
    %pause(1)
@@ -210,26 +212,18 @@ end
 close all
 
 %% calculate ratios
-ratio = zeros(n_lanes, 2);
+ratio = zeros(n_lanes, 3);
 
 for i=1:n_lanes
     pos = bands{i,2};
     DD = dd_bg( pos(2):pos(2)+pos(4) , pos(1):pos(1)+pos(3) );
     AA = aa_bg( pos(2):pos(2)+pos(4) , pos(1):pos(1)+pos(3) );
+    DA = da_cor( pos(2):pos(2)+pos(4) , pos(1):pos(1)+pos(3) );
     
     ratio(i,1) = calculateRation(DD, AA, 0); % DD / AA
     ratio(i,2) = calculateRation(AA, DD, 0); % AA / DD
+    ratio(i,3) = calculateRation(DD, DA, 0); % DD / DA
 end
-
-%%
-close all
-i = 1:n_lanes;
-i_fit = 10:40;
-
-p = polyfit(i_fit, ratio(i_fit, 2)',1);
-
-y = ratio(:,2)'-i.*p(1);
-plot(i, ratio(:,2), 'b', i, p(2)+i.*p(1), 'r', i, y, 'g', i, y./mean(ratio(end-3:end),2), 'k')
 
 %% save all the data
 disp('Saving data...')
@@ -336,6 +330,7 @@ xlabel('Lane')
 ylabel('Width of band [pixel]')
 set(gca, 'XTick',1:size(lanes,1), 'XTickLabel',lanes(:,6),'Fontsize', 12)
 set(gca, 'XLim', [0 size(lanes,1)+1])
+set(gca, 'YLim', [0 20])
 xticklabel_rotate([1:size(lanes,1)],90,lanes(:,6))
 title('Width of band from fit')
 

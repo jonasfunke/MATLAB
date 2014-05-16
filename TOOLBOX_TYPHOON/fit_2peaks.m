@@ -27,7 +27,7 @@ i2 = double(round(   (x2-x(1))/dx  )+1);
 [y_max x_max] = max(y(i1:i2));
 x_max = x_max + pos(1);
 
-tmp = find_peaks1d(y(i1:i2), sigma, y_max/10)+i1-1;
+tmp = find_peaks1d(y(i1:i2), sigma, y_max/10, 1)+i1-1;
 
 if size(tmp,1) > 1
     tmp_sort = sort([tmp y(tmp)], 2);

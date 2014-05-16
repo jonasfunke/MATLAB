@@ -34,14 +34,14 @@ function [ R ] = calculateRation( A, B_in, status )
    % legend({'A', 'B'})
      
    if status
-        close all
+        %close all
         subplot(2,1,1)
-        plot(B_in(:), A(:), 'b.', x, p_raw(1).*x+p_raw(2), 'r')
-        legend({[num2str(p_raw(1))]})
+        plot(B_in(:), A(:), 'b.', x, p_raw(1).*x+p_raw(2), 'r', x,  (sum(sum(A)) ./ sum(sum(B))).*x, 'g')
+        legend({[num2str(p_raw(1))], num2str(sum(sum(A)) ./ sum(sum(B))) })
         
         subplot(2,1,2)
-        plot(B(:), A(:), 'b.', x, p(1).*x+p(2), 'r')
-        legend({[num2str(p(1))]})
+        plot(B(:), A(:), 'b.', x, p(1).*x+p(2), 'r', x,  (sum(sum(A)) ./ sum(sum(B))).*x, 'g')
+        legend({[num2str(p(1))], num2str(sum(sum(A)) ./ sum(sum(B)))})
    end
     
     

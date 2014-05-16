@@ -51,7 +51,7 @@ min_length = str2double(tmp(6)); % minimal number of found spots in a trace
 ch1 = cell(N_movie,1);
 
 for i=1:N_movie
-    ch1{i} = movie(pname, files_ch1(i).name, first, last, sequence_ch1); % pname, fname, first, last, sequence
+    ch1{i} = movie(pname, files_ch1{i}, first, last, sequence_ch1); % pname, fname, first, last, sequence
 end
 
  
