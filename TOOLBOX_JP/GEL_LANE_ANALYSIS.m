@@ -24,21 +24,8 @@ meanYFigure=6;                              %figure to display means in Intensit
 correctionFigure=7;                         %figure to display lanes for running distance correction
 normDotProductFigure=8;                     %figure to display normalized dot products of lanes
 
-figure(laneFigure);                         %display original lane profiles
-clf
-hold all
-minValue=0;
-for currentLane=1:numberOfLanes
-    plot(horizontalIntegrals(:,currentLane));
-    minValue=min(minValue,min(horizontalIntegrals(:,currentLane)));
-end
-hold off
 
-selectedRange=ginput(2);                    %select range for data analysis (discard pocket peaks)
-rangeStart=round(selectedRange(1,1));
-rangeEnd=round(selectedRange(2,1));
-
-%% calculate means and standard deviations of lanes/ lane intensities
+%% collect gel pocket locations
 
 for currentLane=1:numberOfLanes
     
@@ -54,17 +41,71 @@ for currentLane=1:numberOfLanes
     plot(horizontalIntegrals(:,currentLane),'b');
     title('original data blue, 0 shifted data red, choose gel pocket');
     
-    x=[rangeStart,rangeStart];                                      %plot range edges
-    y=[0,max(currentData)];
-    plot(x,y,'g','LineWidth',2) 
+    h = imrect;
     
-    x=[rangeEnd,rangeEnd];
-    y=[0,max(currentData)];
-    plot(x,y,'g','LineWidth',2) 
+    pause
     
-    currentGelPocketLocation=ginput(1);                             %choose gel pocket location
-    gelPocketLocation(currentLane)=currentGelPocketLocation(1,1);
+    pos = int32(getPosition(h));
     
+    delete(h);
+   
+    [maxValue maxPosition] = max(horizontalIntegrals(pos(1):pos(1)+pos(3),currentLane));
+    gelPocketLocation(currentLane)=double(maxPosition+pos(1));
+
+    %currentGelPocketLocation=ginput(1);                             %choose gel pocket location
+    %gelPocketLocation(currentLane)=currentGelPocketLocation(1,1);
+    
+end
+
+clf
+
+
+%% select range for data analysis 
+
+button1='No';
+while strcmp(button1,'No')                      %select data range
+
+    figure(laneFigure);                         %display original lane profiles
+    clf
+    hold all
+    minValue=0;
+    for currentLane=1:numberOfLanes
+        minValue=min(minValue,min(horizontalIntegrals(:,currentLane)));
+        plot(horizontalIntegrals(:,currentLane));
+    end
+    title('SELECT DATA RANGE')
+    hold off
+
+    selectedRange=ginput(2);                    %select range for data analysis 
+    rangeStart=round(selectedRange(1,1));
+    rangeEnd=round(selectedRange(2,1));
+
+    figure(laneFigure);                         %display original lane profiles
+    clf
+    hold all
+    minValue=0;
+    for currentLane=1:numberOfLanes
+        plot(horizontalIntegrals(rangeStart:rangeEnd,currentLane));
+    end
+    title('SELECT DATA RANGE')
+    hold off
+    
+    pause
+    button1 = questdlg('range ok?','is it?' ,'No','Yes', 'Yes');
+
+end
+
+
+
+%% calculate means and standard deviations of lanes/ lane intensities
+
+for currentLane=1:numberOfLanes
+    
+    currentData=transpose(horizontalIntegrals(:,currentLane));      %load current lane data
+    if minValue<0
+        currentData=currentData-minValue;
+    end
+
     currentRangeStart=round(rangeStart-gelPocketLocation(1)+gelPocketLocation(currentLane));%shift ranges by gel pocket location shift
     currentRangeEnd=round(rangeEnd-gelPocketLocation(1)+gelPocketLocation(currentLane));
     
@@ -110,6 +151,105 @@ for currentLane=1:numberOfLanes-1
     
 end
 
+%% normalize with control lanes
+%select control lanes, weighted mean distances will be normalized by average
+%chosen control lane distance from control lane pocket location
+
+% button1 = questdlg('correct with control lanes?','do you?' ,'No','Yes', 'Yes');
+% 
+% if strcmp(button1,'Yes')
+%     prompt= {'number of control lanes'};
+%     dlg_title='Input';
+%     num_lines=1;
+%     def={'1'};
+%     parameters = inputdlg(prompt,dlg_title,num_lines,def);
+%     numControlLanes=str2double(parameters(1));
+% 
+%     correctionLength=0;
+% 
+%     for i=1:numControlLanes
+%         prompt= {'location control lane'};
+%         dlg_title='Input';
+%         num_lines=1;
+%         def={'1'};
+%         parameters = inputdlg(prompt,dlg_title,num_lines,def);
+%         currentLane=str2double(parameters(1));
+% 
+%         figure(correctionFigure);
+%         clf
+%         plot(horizontalIntegrals(:,currentLane));
+%         title('select correction reference location');
+%         currentCorrectionLocation=ginput(1);
+% 
+%         correctionLength=correctionLength+currentCorrectionLocation(1,1)-gelPocketLocation(currentLane);
+%     end
+% 
+%     correctionLength=correctionLength/numControlLanes
+% 
+%     weightedMean=weightedMean/correctionLength
+% else
+%     correctionLength=1;
+% end
+
+%% normalize with 2 control lanes
+%select control lanes, weighted mean distances will be normalized by linear
+%fit of running speed between the two control lanes
+
+button1 = questdlg('correct with control lanes?','do you?' ,'No','Yes', 'Yes');
+
+if strcmp(button1,'Yes')
+    
+    prompt= {'location control lane 1'};
+    dlg_title='Input';
+    num_lines=1;
+    def={'1'};
+    parameters = inputdlg(prompt,dlg_title,num_lines,def);
+    lane1=str2double(parameters(1));
+
+    figure(correctionFigure);
+    clf
+    plot(horizontalIntegrals(:,lane1));
+    title('select correction reference location');
+    
+    h = imrect;
+    pause
+    pos = int32(getPosition(h));
+    delete(h);
+    [maxValue maxPosition] = max(horizontalIntegrals(pos(1):pos(1)+pos(3),lane1));
+    
+    correctionLocation1=double(maxPosition+pos(1))
+   
+    correctionLength1=correctionLocation1-gelPocketLocation(lane1);
+    
+    prompt= {'location control lane 2'};
+    dlg_title='Input';
+    num_lines=1;
+    def={'1'};
+    parameters = inputdlg(prompt,dlg_title,num_lines,def);
+    lane2=str2double(parameters(1));
+
+    figure(correctionFigure);
+    clf
+    plot(horizontalIntegrals(:,lane2));
+    title('select correction reference location');
+    
+    h = imrect;
+    pause
+    pos = int32(getPosition(h));
+    delete(h);
+    [maxValue maxPosition] = max(horizontalIntegrals(pos(1):pos(1)+pos(3),lane2));
+    
+    correctionLocation2=double(maxPosition+pos(1))
+    
+    correctionLength2=correctionLocation2-gelPocketLocation(lane2);
+
+    for i=1:numberOfLanes
+        weightedMean(i)=weightedMean(i)/(correctionLength1+(i-lane1)*(correctionLength2-correctionLength1)/(lane2-lane1));
+    end
+    
+end
+
+
 %% plot results
 
 figure(weightedMeanFigure);
@@ -148,45 +288,6 @@ plot(normDotProduct);
 axis([1 numberOfLanes-1 0 1.1*max(normDotProduct)])
 title('normDotProduct');
 
-%% normalize with control lanes
-%select control lanes, weighted mean distances will be normalized by average
-%chosen control lane distance from control lane pocket location
-
-button1 = questdlg('correct with control lanes?','do you?' ,'No','Yes', 'Yes');
-
-if strcmp(button1,'Yes')
-    prompt= {'number of control lanes'};
-    dlg_title='Input';
-    num_lines=1;
-    def={'1'};
-    parameters = inputdlg(prompt,dlg_title,num_lines,def);
-    numControlLanes=str2double(parameters(1));
-
-    correctionLength=0;
-
-    for i=1:numControlLanes
-        prompt= {'location control lane'};
-        dlg_title='Input';
-        num_lines=1;
-        def={'1'};
-        parameters = inputdlg(prompt,dlg_title,num_lines,def);
-        currentLane=str2double(parameters(1));
-
-        figure(correctionFigure);
-        clf
-        plot(horizontalIntegrals(:,currentLane));
-        title('select correction reference location');
-        currentCorrectionLocation=ginput(1);
-
-        correctionLength=correctionLength+currentCorrectionLocation(1,1)-gelPocketLocation(currentLane);
-    end
-
-    correctionLength=correctionLength/numControlLanes
-
-    weightedMean=weightedMean/correctionLength
-else
-    correctionLength=1;
-end
 
 %% fit 2 state exponential decay with time offset model to weighted mean data
 
@@ -272,7 +373,7 @@ while strcmp(button1,'Yes') && strcmp(button2,'No')                 %collect tim
     clf
     hold all
     plot(time,weightedMean(coeffs(8):coeffs(9)));
-    plot(time,meanAtoBFit(coeffs(1),coeffs(2),coeffs(3),coeffs(4),time));
+    plot(tStart:1:tEnd,meanAtoBFit(coeffs(1),coeffs(2),coeffs(3),coeffs(4),tStart:1:tEnd));
     axis([time(1) time(coeffs(9)-coeffs(8)+1) 0 1.1*max(weightedMean(coeffs(8):coeffs(9)))])
     title('weighted mean');
        
@@ -280,7 +381,7 @@ while strcmp(button1,'Yes') && strcmp(button2,'No')                 %collect tim
     clf
     hold all
     plot(time(1:coeffs(9)-coeffs(8)),normDotProduct(coeffs(8):coeffs(9)-1));
-    plot(time(1:coeffs(9)-coeffs(8)),normDotProductFit(coeffs(5),coeffs(6),coeffs(7),coeffs(1),coeffs(2),tStep,time(1:coeffs(9)-coeffs(8))));
+    plot(tStart:1:(tEnd-tStep),normDotProductFit(coeffs(5),coeffs(6),coeffs(7),coeffs(1),coeffs(2),tStep,tStart:1:(tEnd-tStep)));
     axis([time(1) time(coeffs(9)-coeffs(8)) 0 1.1*max(normDotProduct(coeffs(8):coeffs(9)-1))])
     title('normalized dot product');
     
