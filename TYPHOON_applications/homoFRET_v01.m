@@ -221,16 +221,6 @@ for i=1:n_lanes
     ratio(i,2) = calculateRation(AA, DD, 0); % AA / DD
 end
 
-%%
-close all
-i = 1:n_lanes;
-i_fit = 10:40;
-
-p = polyfit(i_fit, ratio(i_fit, 2)',1);
-
-y = ratio(:,2)'-i.*p(1);
-plot(i, ratio(:,2), 'b', i, p(2)+i.*p(1), 'r', i, y, 'g', i, y./mean(ratio(end-3:end),2), 'k')
-
 %% save all the data
 disp('Saving data...')
 save([path_out filesep prefix_out '_data.mat'])

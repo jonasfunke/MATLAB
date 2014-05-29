@@ -78,7 +78,7 @@ mkdir(path_out_plots)
 
 %%  correct for background
 [dd_bg, bg_dd ] = bg_correct_ui(dd_bin, 'Donor excitation -> Donor emission');
-[da_bg,bg_da ] = bg_correct_ui(da_bin, 'Donor excitation -> Acceptor emission');
+[da_bg, bg_da ] = bg_correct_ui(da_bin, 'Donor excitation -> Acceptor emission');
 [aa_bg, bg_aa ] = bg_correct_ui(aa_bin, 'Acceptor excitation -> Acceptor emission');
 
 %% shift images
@@ -220,9 +220,12 @@ for i=1:n_lanes
     AA = aa_bg( pos(2):pos(2)+pos(4) , pos(1):pos(1)+pos(3) );
     DA = da_cor( pos(2):pos(2)+pos(4) , pos(1):pos(1)+pos(3) );
     
-    ratio(i,1) = calculateRation(DD, AA, 0); % DD / AA
-    ratio(i,2) = calculateRation(AA, DD, 0); % AA / DD
-    ratio(i,3) = calculateRation(DD, DA, 0); % DD / DA
+    tmp = calculateRation(DD, AA, 0); % DD / AA
+    ratio(i,1) = tmp(1);
+    tmp = calculateRation(AA, DD, 0); % AA / DD
+    ratio(i,2) = tmp(1);
+    tmp = calculateRation(DD, DA, 0); % DD / DA
+    ratio(i,3) = tmp(1);
 end
 
 %% save all the data
@@ -234,6 +237,33 @@ save([path_out filesep prefix_out '_data_ratio.mat'], 'ratio','I_sum')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PLOTTING STUFF %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 disp('Generating plots...')
+
+
+%% write corrected images
+disp('Writing images')
+
+t = Tiff([path_out filesep 'da_cor.tif'],'w');
+t.setTag('Photometric',Tiff.Photometric.MinIsWhite);
+t.setTag('BitsPerSample',16);
+t.setTag('SampleFormat',Tiff.SampleFormat.UInt);
+t.setTag('ImageLength',size(da_cor,1));
+t.setTag('ImageWidth',size(da_cor,2));
+t.setTag('SamplesPerPixel',1);
+t.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
+t.write( uint16(da_cor-min(da_cor(:)))  );
+t.close();
+
+t = Tiff([path_out filesep 'da_cor+bg.tif'],'w');
+t.setTag('Photometric',Tiff.Photometric.MinIsWhite);
+t.setTag('BitsPerSample',16);
+t.setTag('SampleFormat',Tiff.SampleFormat.UInt);
+t.setTag('ImageLength',size(da_cor,1));
+t.setTag('ImageWidth',size(da_cor,2));
+t.setTag('SamplesPerPixel',1);
+t.setTag('PlanarConfiguration',Tiff.PlanarConfiguration.Chunky);
+t.write( uint16(da_cor+bg_da)  );
+t.close();
+
 
 
 
@@ -703,4 +733,6 @@ end
 
 close all
 display('...done')
+
+
 
