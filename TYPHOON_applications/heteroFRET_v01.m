@@ -5,11 +5,18 @@ run('my_prefs')
 
 %% Load images
 cd(data_dir)
-[filename_dd pathname_dd]=uigetfile('*.tif','Select Dex -> Dem [cy3]image: ');
-cd(pathname_dd)
-[filename_da pathname_da]=uigetfile('*.tif','Select Dex -> Aem [FRET] image: ');
-[filename_aa pathname_aa]=uigetfile('*.tif','Select Aex -> Aem [cy5] image: ');
+[filename_dd pathname_dd]=uigetfile('*.tif','Select Dex -> Dem [Cy3]-channel: ');
 cd(path0)
+%%
+filename_aa = [filename_dd(1:end-9) '[Cy5].tif'];
+filename_da = [filename_dd(1:end-9) 'FRET_ATTO550_647N.tif'];
+pathname_da = pathname_dd;
+pathname_aa = pathname_dd;
+%%
+%cd(pathname_dd)
+%[filename_da pathname_da]=uigetfile('*.tif','Select Dex -> Aem [FRET] image: ');
+%[filename_aa pathname_aa]=uigetfile('*.tif','Select Aex -> Aem [cy5] image: ');
+%cd(path0)
 
 dd_bin = double(imread([pathname_dd filesep filename_dd])); %bin4x4(double(imread([pathname_dd filesep filename_dd])));
 da_bin = double(imread([pathname_da filesep filename_da])); %bin4x4(double(imread([pathname_da filesep filename_da])));
