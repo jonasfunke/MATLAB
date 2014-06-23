@@ -542,17 +542,58 @@ end
 
 
 
+%%
+
+A = zeros(n_lanes, 4);
+
+for i=1:n_lanes
+    A(i,:) = [i, sum(lanes{i,3}), max(lanes{i,3}), auto_pos(i,3)];
+end
+
+dlmwrite([path_out filesep 'lane_sum_height_width.txt'], A, 'delimiter', '\t') 
 
 
 
 
+close all
+figure(1)
+subplot(3,1,1)
+plot(A(:,1), A(:,2)./A(1,2), 'r.-')
+title('Sum of lane, normalized to first lane')
+
+subplot(3,1,2)
+plot( A(:,1), A(:,3)./A(1,3), 'g.-')
+title('Maximum height of lane, normalized to first lane')
+
+subplot(3,1,3)
+plot( A(:,1), A(:,4)./A(1,4), 'b.-')
+title('Width of lane, normalized to first lane')
+
+figure(2)
+subplot(3,1,1)
+plot(A(:,1), (A(1,4)/A(1,2))*A(:,2)./A(:,4), 'r.-')
+title('Sum of lane, normalized to first lane and width')
+
+subplot(3,1,2)
+plot( A(:,1), (A(1,4)/A(1,3))*A(:,3)./A(:,4), 'g.-')
+title('Maximum height of lane, normalized to first lane and width')
+
+subplot(3,1,3)
+plot( A(:,1), A(:,4)./A(:,4), 'b.-')
+title('Width of lane, normalized to first lane and width')
 
 
+figure(3)
+subplot(2,1,1)
+plot(A(:,1), (A(1,4)/A(1,2))*A(:,2)./A(:,4), 'r.-'), hold on
+%title('Sum of lane, normalized to first lane and width')
 
+plot( A(:,1), (A(1,4)/A(1,3))*A(:,3)./A(:,4), 'g.-')
+%title('Maximum height of lane, normalized to first lane and width')
 
-
-
-
+subplot(2,1,2)
+plot( A(:,1), A(:,4)./A(:,4), 'b.-')
+title('Width of lane, normalized to first lane and width')
 
 
 
