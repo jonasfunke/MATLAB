@@ -1,10 +1,16 @@
-function [ I, areas ] = integrate_areas(img, n_areas, same_size)
+function [ I, areas ] = integrate_areas(img, n_areas, same_size, plot_factor)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
     close all
     areas = zeros(n_areas, 4);
     I = zeros(n_areas, max(size(img)));
-    plot_image_ui(img{1});
+    N_img = max(size(img));
+    img_show = zeros(size(img{1},1), size(img{1},2));
+    for i=1:N_img
+        img_show = img_show + plot_factor(i) .* img{i};
+    end
+    
+    plot_image_ui(img_show); %img{1});
     
     for i=1:n_areas
         for j=1:i-1

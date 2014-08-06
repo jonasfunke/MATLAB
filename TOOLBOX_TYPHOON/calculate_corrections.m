@@ -4,7 +4,7 @@ function [ leak_dir] = calculate_corrections(dd_bg, da_bg, aa_bg, file_out )
 %   Detailed explanation goes here
 
 %% Integrate D-only and A-only band
-[I, areas] = integrate_areas({da_bg, dd_bg, aa_bg}, 2, 1); %cell of images, number of bands, 1=all bands habe the same size
+[I, areas] = integrate_areas({da_bg, dd_bg, aa_bg}, 2, 1, [1 0 0]); %cell of images, number of bands, 1=all bands habe the same size
 
 
 %% make profiles

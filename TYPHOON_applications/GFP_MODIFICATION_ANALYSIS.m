@@ -272,7 +272,7 @@ end
 
 %% plot reporter to gfp ratio
 close all
-fig_dim =[20 15];
+fig_dim =[30 10];
 cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
 
 bar(1:n_bands, I(1:1:n_bands,2) ./ I(1:n_bands,1));
@@ -420,14 +420,29 @@ end
 
 %% fit gel standard
 close all
-fig_dim =[15 10];
+fig_dim =[20 10];
 cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
 c_plot = 0:max(c_ref)/length(c_ref)/10:max(c_ref)*1.2;
 cf = polyfit(c_ref, I_ref, 1);
+
+
+subplot(1,2,1)
+cc = varycolor(n_bands/2);
+for i=1:n_bands/2
+    bar(i, I(2+(i-1)*2,2), 'FaceColor', cc(i,:)), hold on
+end
+xlabel('Sample'), ylabel('Intensity in [Cy5]-channel [a.u.]')
+ylim = get(gca, 'YLim');
+
+subplot(1,2,2)
 plot(c_ref, I_ref, 'b.', 'Markersize', 15), hold on
 plot(c_plot, cf(2)+cf(1)*c_plot, 'r--')
-hline(I(2:2:end,2), 'b-')
+for i=1:n_bands/2
+    hline(I(2+(i-1)*2,2), {'Color', cc(i,:)})
+end
+set(gca, 'YLim', ylim)
 xlabel('Concentration [nM]'), ylabel('Intensity [a.u.]')
+
 
 print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_calibration.tif']); %save figure
 dlmwrite([path_out filesep prefix_out '_concentration-standard_coefficients.txt'], cf,'delimiter' , '\t')
@@ -439,12 +454,13 @@ c_final = zeros(size(I,1),1);
 c_final(2:2:end) = (I(2:2:end,2)-cf(2))/cf(1)/2; % divide by 2, since 2xlabeled species has twice the signal per GFP-molecule
 c_final(1:2:end) = (I(1:2:end,2)-cf(2))/cf(1);
 
+dilution_factor = 1.5/5; %factor how much the sample was diluted
 
 display('Initial concentration of double-labeled-GFP [nM]:')
-c_initial = c_final*10/3
+c_initial = c_final/dilution_factor;
 
 display('Initial concentration of double-labeled-GFP [nM]:')
-round(c_final*10/3)
+round(c_final/dilution_factor)
 %%
 %write output file
 fileID = fopen([path_out filesep prefix_out '_concentrations.txt'],'w');
@@ -463,4 +479,4 @@ display('Final concentration of single-labeled-GFP [uM]:')
 c_final_2 = (I(1:1:end,2)-cf(2))/cf(1)/2
 
 display('Initial concentration of single-labeled-GFP [nM]:')
-c_initial = round(c_final_2*10/3*1000)
+c_initial = round(c_final_2/dilution_factor)

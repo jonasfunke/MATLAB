@@ -49,16 +49,23 @@ n_bands = str2double(tmp(1));
 close all
 
 %% integrate areas, all areas have the same size
-[I, areas] = integrate_areas(img_bg, n_bands, 1); %cell of images, number of bands, 1=all bands habe the same size
+[I, areas] = integrate_areas(img_bg, n_bands, 1, [1 1]); %cell of images, number of bands, 1=all bands habe the same size
 
 %% assining names
-names = cell(n_bands,1);
-for i=1:n_bands
-    band_name = inputdlg({'Name of band:'}, 'Band names' , 1, {['Band ' num2str(i)]} );
-    names{i} = band_name{1};
-    
-end
 
+button = questdlg('Name lanes?','Name lanes','Yes','No','No');
+if strcmp(button,'Yes') %load old data
+    names = cell(n_bands,1);
+    for i=1:n_bands
+        band_name = inputdlg({'Name of band:'}, 'Band names' , 1, {['Band ' num2str(i)]} );
+        names{i} = band_name{1};
+
+    end
+else
+    for i=1:n_bands
+        names{i} = ['Band ' num2str(i)];
+    end
+end
 
 %%
 %colormap('gray'), colorbar
@@ -143,6 +150,42 @@ legend({'GFP', 'DNA'})
 
 print(cur_fig, '-dpng','-loose' , [path_out filesep prefix_out '_sum.png']); %save figure
 print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_sum.tif']); %save figure
+
+%%
+
+ratio = ([I(1:3:n_bands,1)./(I(1:3:n_bands,1)+I(2:3:n_bands,1)) I(1:3:n_bands,2)./(I(1:3:n_bands,2)+I(3:3:n_bands,2))]);
+
+save([path_out filesep prefix_out '_ratio'], 'ratio' )
+
+
+
+close all
+fig_dim =[20 15];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+
+subplot(2,1,2)
+bar(ratio(:,2)*100, 'r')
+set(gca, 'YLim', [0 15])
+ylabel('AB / (A+AB) in [%]')
+title('[cy5]-channel')
+for i=1:n_bands/3
+    text(i,5, [num2str(round(ratio(i,2)*1000)/10)], 'Color', 'black', 'FontSize', 15, 'HorizontalAlignment','center')
+end
+
+
+subplot(2,1,1)
+bar(ratio(:,1)*100, 'g')
+set(gca, 'YLim', [0 15])
+ylabel('AB / (A+AB) in [%]')
+title('[cy3]-channel')
+for i=1:n_bands/3
+    text(i,5, [num2str(round(ratio(i,1)*1000)/10)], 'Color', 'black', 'FontSize', 15, 'HorizontalAlignment','center')
+end
+
+dlmwrite([path_out filesep 'data_ratio.txt' ], ratio, 'delimiter', '\t')
+
+print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_ratios.tif']); %save figure
+
 
 %%
 close all
@@ -318,13 +361,11 @@ print(cur_fig, '-dtiff','-r500' , '-loose' , [path_out filesep prefix_out '_trac
 
 %%
 
-
-I = zeros(n_bands, n_img);
-for i=1:n_bands
+for i=1:size(areas,1)
     pos = areas(i,:);
-    for j = 1:n_img
-        I(i,j) = sum(sum((img_bg{j}(pos(2):pos(2)+pos(4)  , pos(1):pos(1)+pos(3))))); %integrate
-    end
-    close all
+        for j= 1:2
+            I(i,j) = sum(sum((img_bg{j}(pos(2):pos(2)+pos(4)  , pos(1):pos(1)+pos(3))))); %integrate
+        end
 end
-    
+
+

@@ -18,6 +18,7 @@ x2 = pos(1)+pos(3);
 close all
 
 
+
 %% fit a gaussian to selected area 
 sigma = 8;
 
@@ -29,11 +30,24 @@ x_max = x_max + pos(1);
 
 tmp = find_peaks1d(y(i1:i2), sigma, y_max/10, 1)+i1-1;
 
+%%
 if size(tmp,1) > 1
-    tmp_sort = sort([tmp y(tmp)], 2);
-    p_init = double([x_max sigma y_max x(tmp_sort(2,end-1)) sigma y(tmp_sort(2,end-1)) ]);
+    tmp_sort = sortrows([tmp y(tmp)]);
+    if size(tmp,1) == 2 % two peask found
+        p_init = double([x(tmp_sort(1,1)) sigma tmp_sort(1,2) x(tmp_sort(2,1)) sigma tmp_sort(2,2) ]);
+    else
+        
+        p_init = double([x(tmp_sort(1,1)) sigma tmp_sort(1,2) x(tmp_sort(end,1)) sigma tmp_sort(end,2) ]);
+    end
 else
-    p_init = double([x_max sigma y_max x_max sigma y_max ]);
+    
+    plot(x,y)
+        xlim = [x(1) x(end)];
+        set(gca, 'XLim', xlim)
+        [x0,y0] = ginput(2);
+        
+        p_init = double([x0(1) sigma y0(1) x0(2) sigma y0(2) ]);
+    %p_init = double([x_max sigma y_max x_max sigma y_max ]);
 end    
 %%
 
