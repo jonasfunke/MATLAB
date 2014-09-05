@@ -56,6 +56,15 @@ end
  
 [auto_pos , area] = find_lanes(img_sum);
 
+%%
+w = 30;
+xm = auto_pos(:,1)+auto_pos(:,3)/2;
+auto_pos(:,1) = xm-w/2;
+auto_pos(:,3) = w;
+auto_pos = round(auto_pos);
+
+%%
+
 close all
 
 
@@ -97,6 +106,33 @@ close all
 %%
 save([path_out filesep prefix_out '_data'] )
 display('done')
+
+
+
+%% plot image and lanes
+close all
+
+for i=1:n_img
+    plot_image(img_bg{i}, [0.1 0.2])
+    set(gca, 'XTick', [],  'YTick', [])
+    hold on
+    for b=1:size(auto_pos,1)
+        rectangle('Position', auto_pos(b,:), 'EdgeColor', 'r')
+        text(auto_pos(b,1)+auto_pos(b,3)/2, auto_pos(b,2), num2str(b), 'VerticalAlignment', 'Bottom', 'HorizontalAlignment', 'Center', 'Color', [1 0 0], 'FontSize', 5, 'Linewidth', 0.5)
+    end
+    print(cur_fig, '-dtiff', '-r500' , [path_out filesep 'Integration_region_img_' num2str(i) '.tif']); %save figure
+end
+
+
+
+
+
+
+
+
+
+
+
 
 %%
 
@@ -202,7 +238,7 @@ for j=1:n_img
 
     for i=1:n_lanes
         [I_max i_max] = max(lanes{i,2+j});
-        p =find_peaks1d(lanes{i,2+j}, 10, max(lanes{i,2+j})/4);
+        p =find_peaks1d(lanes{i,2+j}, 10, max(lanes{i,2+j})/4, 1);
 
         i_max = p(1);
         h(i)=plot(lanes{i,2}- lanes{i,2}(i_max), lanes{i,2+j}./sum(lanes{i,2+j}), 'Color', cc(i,:) );
@@ -218,6 +254,27 @@ for j=1:n_img
     print(cur_fig, '-dpng','-r600' , [path_out filesep prefix_out '_img_' num2str(j) '_Intesity_normalized_shifted'  '.png']); %save figure
 end
 
+%%
+close all
+fig_dim =[20 10];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+
+cc = [0 1 0; 1 0 0 ];
+for i=1:n_lanes
+
+    for j=1:n_img
+         
+        h(j)=plot(lanes{i,2}, lanes{i,2+j}./sum(lanes{i,2+j}), 'Color', cc(j,:) ); hold on;
+    end
+    legend({'Cy3', 'Cy5'})
+    xlabel('Migration distance [pixel]'), ylabel('Normalized Intensity')
+
+
+    print(cur_fig, '-dpng','-r400' , [path_out filesep prefix_out '_profiles_' num2str(i)  '.png']); %save figure
+    hold off
+end
+
+
 %% all in one
 for j=1:n_img
     close all
@@ -228,7 +285,7 @@ for j=1:n_img
     cc = [1 0 0; 0 0 1]
     for i=1:n_lanes
         [I_max i_max] = max(lanes{i,2+j});
-        p =find_peaks1d(lanes{i,2+j}, 10, max(lanes{i,2+j})/4);
+        p =find_peaks1d(lanes{i,2+j}, 10, max(lanes{i,2+j})/4, 1);
 
         i_max = p(1);
         
@@ -283,9 +340,9 @@ end
 %% fit two gaussians
 
     
-    closed = zeros(n_lanes,3);
-    open = zeros(n_lanes,3);
-%%
+closed = zeros(n_lanes,3);
+open = zeros(n_lanes,3);
+
     
 for j=1:n_img
     close all
@@ -294,7 +351,7 @@ for j=1:n_img
     hold all
     h = zeros(1, n_lanes);
     cc = varycolor(n_lanes);
-    for i=1:10%n_lanes
+    for i=1:n_lanes
         if i == 1 || i == 11% just one peak
            h(i)=plot(lanes{i,2}, lanes{i,2+j} , 'Color', cc(i,:));
            [p p_err] = fit_peak(lanes{i,2}, lanes{i,2+j});   
@@ -599,13 +656,33 @@ title('Width of lane, normalized to first lane and width')
 
 
 
+%%
 
+
+d = zeros(n_lanes, 6);
+subplot(2, 1, 1)
+for i = 1:n_lanes
+
+   [a b] = max(lanes{i,3});
+   s = sum(lanes{i,3});
+    
+   [p1, p2] = fit_2peaks(lanes{i,2}, lanes{i,3}./s);
+   
+   d(i,:) = [p1 p2 ];
+  pause
+end
+
+%%
+p = d(:,2).*d(:,3) ./ (d(:,2).*d(:,3) + d(:,5).*d(:,6)); % fraction closed
+plot(p, '.')
 
 
 
 
 
     
+
+%%
     
     
     
