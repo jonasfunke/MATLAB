@@ -22,7 +22,7 @@ options = odeset('RelTol',1e-4,'AbsTol',[1e-2 1e-2 1e-2 1e-2 1e-2]);
 yield = cell(length(L_0), 2);
 
 for i = 1:length(L_0)
-    state_0 = [L_0(i) FS_0 0 0 0]
+    state_0 = [L_0(i) FS_0 0 0 0];
 
     [T,Y] = ode45(fs, [t0 t_end], state_0, options);
     yield{i, 1} = T;
