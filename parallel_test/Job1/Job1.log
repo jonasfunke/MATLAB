@@ -1,0 +1,114 @@
+
+chooseSmpdHosts()
+Node file: compute-0-[15-16]
+
+chooseSmpdPort()
+
+launchSmpds()
+Starting SMPD on compute-0-15 compute-0-16  ...
+ssh compute-0-15 "/share/apps/MATLAB/R2014a/bin/mw_smpd" -s -phrase MATLAB -port 20601
+ssh compute-0-16 "/share/apps/MATLAB/R2014a/bin/mw_smpd" -s -phrase MATLAB -port 20601
+All SMPDs launched
+
+chooseMachineArg()
+Machine args: -n 5
+
+runMpiexec()
+"/share/apps/MATLAB/R2014a/bin/mw_mpiexec" -phrase MATLAB -port 20601 -l -n 5 -genvlist MDCE_DECODE_FUNCTION,MDCE_STORAGE_LOCATION,MDCE_STORAGE_CONSTRUCTOR,MDCE_JOB_LOCATION "/share/apps/MATLAB/R2014a/bin/worker" -parallel 
+
+[3]                            < M A T L A B (R) >
+[3]                  Copyright 1984-2014 The MathWorks, Inc.
+[3]                    R2014a (8.3.0.532) 64-bit (glnxa64)
+[3]                             February 11, 2014
+[1]                            < M A T L A B (R) >
+[1]                  Copyright 1984-2014 The MathWorks, Inc.
+[1]                    R2014a (8.3.0.532) 64-bit (glnxa64)
+[1]                             February 11, 2014
+[4]                            < M A T L A B (R) >
+[4]                  Copyright 1984-2014 The MathWorks, Inc.
+[4]                    R2014a (8.3.0.532) 64-bit (glnxa64)
+[4]                             February 11, 2014
+[2]                            < M A T L A B (R) >
+[2]                  Copyright 1984-2014 The MathWorks, Inc.
+[2]                    R2014a (8.3.0.532) 64-bit (glnxa64)
+[2]                             February 11, 2014
+[0]                            < M A T L A B (R) >
+[0]                  Copyright 1984-2014 The MathWorks, Inc.
+[0]                    R2014a (8.3.0.532) 64-bit (glnxa64)
+[0]                             February 11, 2014
+[1] 
+[3] 
+[3]To get started, type one of these: helpwin, helpdesk, or demo.
+[1]To get started, type one of these: helpwin, helpdesk, or demo.
+[3]For product information, visit www.mathworks.com.
+[3] 
+[1]For product information, visit www.mathworks.com.
+[1] 
+[2] 
+[4] 
+[0] 
+[0]To get started, type one of these: helpwin, helpdesk, or demo.
+[3]>> [1]>> [0]For product information, visit www.mathworks.com.
+[0] 
+[2]To get started, type one of these: helpwin, helpdesk, or demo.
+[4]To get started, type one of these: helpwin, helpdesk, or demo.
+[2]For product information, visit www.mathworks.com.
+[2] 
+[4]For product information, visit www.mathworks.com.
+[4] 
+[2]>> [0]>> [4]>> called slurmParallelDecode
+[0]storageConstructor =
+[0]makeFileStorageObject
+[0]storageLocation =
+[0]/nfs/matlabuser
+[0]jobLocation =
+[0]Job1
+[0]taskLocation =
+[0]Job1/Task1
+called slurmParallelDecode
+[1]storageConstructor =
+[1]makeFileStorageObject
+[1]storageLocation =
+[1]/nfs/matlabuser
+[1]jobLocation =
+[1]Job1
+[1]taskLocation =
+[1]Job1/Task2
+called slurmParallelDecode
+[3]storageConstructor =
+[3]makeFileStorageObject
+[3]storageLocation =
+[3]/nfs/matlabuser
+[3]jobLocation =
+[3]Job1
+[3]taskLocation =
+[3]Job1/Task4
+called slurmParallelDecode
+[2]storageConstructor =
+[2]makeFileStorageObject
+[2]storageLocation =
+[2]/nfs/matlabuser
+[2]jobLocation =
+[2]Job1
+called slurmParallelDecode
+[4]storageConstructor =
+[4]makeFileStorageObject
+[4]storageLocation =
+[4]/nfs/matlabuser
+[4]jobLocation =
+[4]Job1
+[2]taskLocation =
+[2]Job1/Task3
+[4]taskLocation =
+[4]Job1/Task5
+[0]Sending a stop signal to all the labs...
+[0]2014-09-15 20:26:17 | About to exit MATLAB normally
+[0]2014-09-15 20:26:17 | About to exit with code: 0
+{0}
+
+cleanupAndExit()
+
+Stopping SMPD on  compute-0-15 compute-0-16 ...
+ssh compute-0-15 "/share/apps/MATLAB/R2014a/bin/mw_smpd" -shutdown -phrase MATLAB -port 20601
+ssh compute-0-16 "/share/apps/MATLAB/R2014a/bin/mw_smpd" -shutdown -phrase MATLAB -port 20601
+Exiting with code: 0

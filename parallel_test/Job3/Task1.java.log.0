@@ -1,0 +1,26 @@
+2014 09 12 16:36:54.310 UTC | 2 | MATLAB: About to find job proxy using location "Job3"
+2014 09 12 16:36:54.369 UTC | 2 | MATLAB: About to find task proxy using location "Job3/Task1"
+2014 09 12 16:36:54.475 UTC | 4 | MATLAB: Setting the TaskEvaluator to the CapturingEvaluator
+2014 09 12 16:36:54.481 UTC | 2 | MATLAB: Completed pre-execution phase
+2014 09 12 16:36:54.506 UTC | 4 | MATLAB: About to pPreJobEvaluate
+2014 09 12 16:36:55.027 UTC | 4 | MATLAB: About to pPreTaskEvaluate
+2014 09 12 16:36:55.040 UTC | 4 | MATLAB: About to add job dependencies
+2014 09 12 16:36:55.183 UTC | 4 | MATLAB: About to call jobStartup
+2014 09 12 16:36:55.191 UTC | 6 | MATLAB: About to push StringWriter on stack
+2014 09 12 16:36:55.198 UTC | 6 | MATLAB: StringWriter popped off stack
+2014 09 12 16:36:55.206 UTC | 4 | MATLAB: About to call taskStartup
+2014 09 12 16:36:55.208 UTC | 6 | MATLAB: About to push StringWriter on stack
+2014 09 12 16:36:55.210 UTC | 6 | MATLAB: StringWriter popped off stack
+2014 09 12 16:36:55.211 UTC | 4 | MATLAB: About to get evaluation data
+2014 09 12 16:36:55.303 UTC | 1 | MATLAB: Begin task function
+2014 09 12 16:36:55.304 UTC | 6 | MATLAB: About to push StringWriter on stack
+2014 09 12 16:36:55.325 UTC | 6 | MATLAB: StringWriter popped off stack
+2014 09 12 16:36:55.346 UTC | 1 | MATLAB: End task function
+2014 09 12 16:36:55.351 UTC | 4 | MATLAB: About to call taskFinish
+2014 09 12 16:36:55.353 UTC | 6 | MATLAB: About to push StringWriter on stack
+2014 09 12 16:36:55.360 UTC | 6 | MATLAB: StringWriter popped off stack
+2014 09 12 16:36:55.402 UTC | 4 | MATLAB: About to call pPostTaskEvaluate
+2014 09 12 16:36:55.471 UTC | 4 | MATLAB: About to call pPostJobEvaluate
+2014 09 12 16:36:55.510 UTC | 4 | MATLAB: About to set job state to finished
+2014 09 12 16:36:55.531 UTC | 0 | MATLAB: About to exit MATLAB normally
+2014 09 12 16:36:55.533 UTC | 0 | MATLAB: About to exit with code: 0
