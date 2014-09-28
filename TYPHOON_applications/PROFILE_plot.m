@@ -1,7 +1,5 @@
 %%
-clear all
-close all
-clc
+clear all, close all, clc
 run('my_prefs')
 path0 = cd;
 
@@ -111,7 +109,10 @@ display('done')
 
 %% plot image and lanes
 close all
-
+  fig_dim =[20 10];
+    cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+    hold all
+   
 for i=1:n_img
     plot_image(img_bg{i}, [0.1 0.2])
     set(gca, 'XTick', [],  'YTick', [])
@@ -352,7 +353,7 @@ for j=1:n_img
     h = zeros(1, n_lanes);
     cc = varycolor(n_lanes);
     for i=1:n_lanes
-        if i == 1 || i == 11% just one peak
+        if i == 1 || i == 9% just one peak
            h(i)=plot(lanes{i,2}, lanes{i,2+j} , 'Color', cc(i,:));
            [p p_err] = fit_peak(lanes{i,2}, lanes{i,2+j});   
            open(i,:) = p;
@@ -371,28 +372,37 @@ end
 dlmwrite([path_out filesep prefix_out '_open.txt'], open, 'delimiter', '\t')
 dlmwrite([path_out filesep prefix_out '_closed.txt'], closed, 'delimiter', '\t')
 
-%%
-x = closed(:,2).*closed(:,3) ./ (closed(:,2).*closed(:,3) + open(:,2).*open(:,3)) ;
-ratio = [0 0.4:0.1:1 1 2]';
-plot(ratio, x(1:10), 'b.-', 'markersize', 15), hold on
-plot(ratio, x(11:20), 'r.-', 'markersize', 15), hold on
-dlmwrite([path_out filesep prefix_out '_fraction_closed.txt'], [[ratio; ratio] x], 'delimiter', '\t')
-
-%%
+%% plot against lane
 close all
-  fig_dim =[20 10];
-    cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
-   
-semilogx(ratio, x(1:10), 'b.-', 'markersize', 15), hold on
-semilogx(ratio, x(11:20), 'r.-', 'markersize', 15)
-set(gca, 'XLim', [0.1 3])
-legend({'ssLoop', 'v2Loop'}, 'location', 'northwest')
-xlabel('Ratio of [Linker]/[FS]')
+x = closed(:,2).*closed(:,3) ./ (closed(:,2).*closed(:,3) + open(:,2).*open(:,3)) ;
+i = [1:n_lanes]';
+plot(i, x, 'b.-', 'markersize', 15), hold on
+
+dlmwrite([path_out filesep prefix_out '_fraction_closed_vs_lane.txt'], [i x], 'delimiter', '\t')
+
+%% plot against lane
+x = closed(:,2).*closed(:,3) ./ (closed(:,2).*closed(:,3) + open(:,2).*open(:,3)) ;
+excess = [0 0.5 0.75 1 2 3 4 5]';
+plot(excess, x(1:8), 'b.-', 'markersize', 15), hold on
+plot(excess, x(9:16), 'r.-', 'markersize', 15), hold on
+
+
+close all
+fig_dim =[20 10];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+plot(excess, x(1:8), 'b.-', 'markersize', 15), hold on
+plot(excess, x(9:16), 'r.-', 'markersize', 15), hold on
+
+  % semilogx(excess, x(1:8), 'b.-', 'markersize', 15), hold on
+%semilogx(excess, x(9:16), 'r.-', 'markersize', 15), hold on
+
+set(gca, 'XLim', [0 5])
+legend({'25?C, FoB20', '45?C, FoB20'}, 'location', 'northwest')
+xlabel('Excess of Oligo that closes')
 ylabel({'Fraction of closed structures', '[closed] / ([closed]+[open])'})
 set(gca, 'YLim', [0 1])
 
-    print(cur_fig, '-depsc2','-loose' , [path_out filesep prefix_out '_img_fraction'  '.eps']); %save figure
-    print(cur_fig, '-dpng','-r600' , [path_out filesep prefix_out '_img_fraction'  '.png']); %save figure
+    print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_img_fraction'  '.tif']); %save figure
 
 
 %%

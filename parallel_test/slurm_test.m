@@ -17,7 +17,7 @@ N = length(n_worker);
 r = zeros(N,2);
 %for n=1:N
 n = 1;
-    disp(['------------------------------- Running with ' num2str(n_worker(n)) ' workers -------------------------------'])
+    disp(['------------------------------- Running with ' num2str(n_worker(n)) ' worker(s) -------------------------------'])
     %j = batch(mycluster, @test_function,1,'CaptureDiary',true, 'CurrentDirectory', '.','AdditionalPaths', {'/nfs/matlabuser'}, 'Pool', n_worker(n));
     j = batch(mycluster, @test_function,1,'CaptureDiary',true, 'CurrentDirectory', '.','AdditionalPaths', {'/nfs/matlabuser'}, 'Pool', 2);
 
