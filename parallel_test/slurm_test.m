@@ -8,7 +8,7 @@ mypool = parpool('InstallTest',1)
 clear all, close all, clc
 
 cd('/Users/jonasfunke/Documents/MATLAB/parallel_test')
-mycluster = parcluster('InstallTest');
+mycluster = parcluster('NonShared');
 
 %parpool(mycluster, 2);
 
@@ -19,7 +19,7 @@ r = zeros(N,2);
 n = 1;
     disp(['------------------------------- Running with ' num2str(n_worker(n)) ' worker(s) -------------------------------'])
     %j = batch(mycluster, @test_function,1,'CaptureDiary',true, 'CurrentDirectory', '.','AdditionalPaths', {'/nfs/matlabuser'}, 'Pool', n_worker(n));
-    j = batch(mycluster, @test_function,1,'CaptureDiary',true, 'CurrentDirectory', '.','AdditionalPaths', {'/nfs/matlabuser'}, 'Pool', 2);
+    j = batch(mycluster, @test_function,1,'CaptureDiary',true, 'CurrentDirectory', '.','AdditionalPaths', {'/nfs/matlabuser/jonasfunke'}, 'Pool', 2);
 
     wait(j)
     r(n,1) = n_worker(n);

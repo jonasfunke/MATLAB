@@ -1,0 +1,15 @@
+#!/bin/sh
+#SBATCH --job-name=Job4
+#SBATCH --output='/nfs/matlabuser/jobdata_nonshared/Job4/Job4.log'
+#SBATCH --error='/nfs/matlabuser/jobdata_nonshared/Job4/Job4.err'
+#SBATCH --nodelist=compute-0-15
+export MDCE_DECODE_FUNCTION=slurmParallelDecode
+export MDCE_STORAGE_LOCATION=/nfs/matlabuser/jobdata_nonshared
+export MDCE_STORAGE_CONSTRUCTOR=makeFileStorageObject
+export MDCE_JOB_LOCATION=Job4
+export MDCE_CMR=/share/apps/MATLAB/R2014a
+export MDCE_MATLAB_EXE=/share/apps/MATLAB/R2014a/bin/worker
+export MDCE_MATLAB_ARGS=-parallel
+export MDCE_TOTAL_TASKS=3
+export MDCE_DEBUG=true
+sh '/nfs/matlabuser/jobdata_nonshared/Job4/slurmParallelWrapper.sh' 
