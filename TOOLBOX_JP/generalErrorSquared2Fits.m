@@ -28,11 +28,11 @@ errorSquared=0;
 
 
 for i=1:n1
-    errorSquared=errorSquared+(yData1(i)/mean1-fitType1(inputParameters1{:},xData1(i))/mean1).^2;
+    errorSquared=errorSquared+(yData1(i)/(mean1)-fitType1(inputParameters1{:},xData1(i))/(mean1)).^2;
 end
 
 for i=1:n2
-    errorSquared=errorSquared+(yData2(i)/mean2-fitType2(inputParameters2{:},xData2(i))/mean2).^2;
+    errorSquared=errorSquared+(yData2(i)/(mean2)-fitType2(inputParameters2{:},xData2(i))/(mean2)).^2;
 end
 
 

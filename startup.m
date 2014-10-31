@@ -1,7 +1,3 @@
-display('----------------------------------------------------------------')
-display('------------------------- NEVER GIVE UP ------------------------')
-display('----------------------------------------------------------------')
-
 % load general preferences
 run('my_prefs')
 %%
@@ -17,4 +13,11 @@ display( ['Added search-path: ' matlab_dir filesep 'TOOLBOX_MOVIE' ])
 
 addpath(genpath([matlab_dir filesep 'TOOLBOX_TYPHOON']))
 display( ['Added search-path: ' matlab_dir filesep 'TOOLBOX_TYPHOON' ])
+
+addpath(genpath([matlab_dir filesep 'TOOLBOX_JP']))
+display( ['Added search-path: ' matlab_dir filesep 'TOOLBOX_JP' ])
+
+addpath(genpath([matlab_dir filesep 'EXTERNAL applications']))
+display( ['Added search-path: ' matlab_dir filesep 'TOOLBOX_JP' ])
+
 %%
