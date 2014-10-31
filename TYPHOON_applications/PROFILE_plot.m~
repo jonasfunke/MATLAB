@@ -195,7 +195,7 @@ for j=1:n_img
 
     legend(h,lanes{:,1}, 'location', 'best')
     xlabel('Migration distance [pixel]')
-    ylabel('Raw intensity [a.u.]')
+    ylabel('Intensity')
     set(gca, 'XLim', [lanes{i,2}(1) lanes{i,2}(end)])
 
 
@@ -219,12 +219,12 @@ for j=1:n_img
 
     legend(h,lanes{:,1}, 'location', 'best')
     xlabel('Migration distance [pixel]')
-    ylabel('Normalized Intensity')
+    ylabel('Intensity')
     set(gca, 'XLim', [lanes{i,2}(1) lanes{i,2}(end)])
 
 
    % print(cur_fig, '-depsc2','-loose' , [path_out filesep prefix_out '_img_' num2str(j) '_Intesity_normalized'  '.eps']); %save figure
-    print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_img_' num2str(j) '_Intesity_normalized'  '.tif']); %save figure
+    print(cur_fig, '-dt','-r500' , [path_out filesep prefix_out '_img_' num2str(j) '_Intesity_normalized'  '.png']); %save figure
 end
 
 % normalized and shifted data
@@ -247,12 +247,12 @@ for j=1:n_img
 
     legend(h,lanes{:,1}, 'location', 'best')
     xlabel('Migration distance [pixel]')
-    ylabel('Normalized Intensity')
+    ylabel('Intensity')
     %set(gca, 'XLim', [lanes{i,2}(1) lanes{i,2}(end)])
 
 
    % print(cur_fig, '-depsc2','-loose' , [path_out filesep prefix_out '_img_' num2str(j) '_Intesity_normalized_shifted'  '.eps']); %save figure
-    print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_img_' num2str(j) '_Intesity_normalized_shifted'  '.tif']); %save figure
+    print(cur_fig, '-dpng','-r600' , [path_out filesep prefix_out '_img_' num2str(j) '_Intesity_normalized_shifted'  '.png']); %save figure
 end
 
 %%

@@ -5,43 +5,16 @@ path0 = cd;
 
 %% load image
 %nimg_input = inputdlg({'Number of images:'}, 'Number of images' , 1, {'1'} );
-n_img = 2; %str2double(nimg_input{1});
+n_img = 1; %str2double(nimg_input{1});
 
 filenames = cell(n_img, 1);
 pathnames = cell(n_img, 1);
 
 cd(data_dir)
 [filenames{1} pathnames{1}]=uigetfile('*.tif','Select image:');
-pathnames{2} = pathnames{1};
 cd(path0)
 
-
-%%
-% check if you selected Cy3 or Cy5
-if ~isempty(strfind(filenames{1}, '[Cy3]')) 
-    % contains Cy3
-    k = strfind(filenames{1}, '[Cy3]');
-    filenames{2} = [filenames{1}(1:k-1), '[Cy5]', filenames{1}(k+5:end)];
-    prefix_out = [filenames{1}(1:k-2) filenames{1}(k+5:end-4) '_bands01'];
-else
-    if ~isempty(strfind(filenames{1}, '[Cy5]')) 
-        % contains Cy5
-        filenames{2} = filenames{1};
-        k = strfind(filenames{2}, '[Cy5]');
-        filenames{1} = [filenames{2}(1:k-1), '[Cy3]', filenames{2}(k+5:end)];
-        prefix_out = [filenames{2}(1:k-2) filenames{2}(k+5:end-4) '_bands01'];
-    else
-        disp('Could not find [Cy3] or [Cy5] in selected file name')
-        last_dir = data_dir;
-        for i=1:n_img
-            cd(last_dir)
-            [filenames{i} pathnames{i}]=uigetfile('*.tif','Select image:');
-            last_dir = pathnames{i};
-        end
-        cd(path0)
-        prefix_out = {filenames{1}(1:size(filenames{1},2)-4)};
-    end
-end
+prefix_out = [filenames{1}(1:size(filenames{1},2)-4) '_bands01'];
 
 
 
@@ -118,31 +91,11 @@ for i=1:n_img
 end
 
 
-%% plot rgb image
-scale_factor_red = 6000;
-scale_factor_green = 2500;
-
-g = prctile(images{1}(:), [10 98]');
-r = prctile(images{2}(:), [10 95]');
-
-green_scaled = (2^16-1).*(images{1}-g(1))./g(2);
-red_scaled = (2^16-1).*(images{2}-r(1))./r(2);
-
-%green_scaled = images{1} .* ((2^16-1)/scale_factor_green);
-%red_scaled = images{2} .* ((2^16-1)/scale_factor_red);
-
-rgb_scaled = zeros(size(images{1},1), size(images{1},2), 3);
-rgb_scaled(:,:,1) = red_scaled;
-rgb_scaled(:,:,2) = green_scaled;    
-imwrite(uint16(rgb_scaled), [path_out filesep prefix_out '_rgb_scaled.tif'])
-
-
 
 %%
-I_dimer = I(1:3:end,:);
+I_dimer = I(1:2:end,1);
 
-I_monomer = [I(2:3:end,1) I(3:3:end,2)]; % change this depending whether short or long oligo ist cy3 or cy5
-%I_monomer = [I(3:3:end,1) I(2:3:end,2)]; % change this depending whether short or long oligo ist cy3 or cy5
+I_monomer = I(2:2:end,1); % change this depending whether short or long oligo ist cy3 or cy5
 
 yield = I_dimer ./ (I_dimer + I_monomer);
 
@@ -154,7 +107,7 @@ save([path_out filesep prefix_out '_data'] )
 
 dlmwrite([path_out filesep 'data.txt' ], I, 'delimiter', '\t')
 
-disp(['Data saved.'])
+disp('Data saved.')
 
 %% PLOTTING STUFF
 close all
@@ -170,7 +123,7 @@ print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_IntesityRaw.tif
 
 
 %% plot absolute intensity
-x = 1:n_bands/3;
+x = 1:n_bands/2;
 
 close all
 fig_dim =[20 10];
@@ -178,12 +131,12 @@ cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','cen
 
 T = I_monomer+I_dimer;
 
-plot(x, T(:,1), 'g.-', x, T(:,2), 'r.-')
+plot( x, T, 'r.-')
 ylabel('Sum of dimer and monomer')
 xlabel('Lane')
-set(gca, 'XLim', [1 n_bands/3], 'XTick', [1:n_bands/3], 'YLim', [min([0 min(T(:))])   max(T(:))]);
+set(gca, 'XLim', [1 n_bands/2], 'XTick', [1:n_bands/2], 'YLim', [min([0 min(T(:))])   1.1*max(T(:))]);
 
-legend({'cy3-channel', 'cy5-channel'})
+legend({'cy5-channel'})
 
 print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_sum.tif']); %save figure
 
@@ -191,18 +144,18 @@ print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_sum.tif']); %sa
 
 
 %% plot yield against lane
-x = 1:n_bands/3;
+x = 1:n_bands/2;
 
 close all
 fig_dim =[20 10];
 cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
 
-plot(x, 100*yield(:,1), 'g.-', x, 100*yield(:,2), 'r.-')
+plot( x, 100*yield(:,1), 'r.-')
 
 xlabel('Lane')
-set(gca, 'XLim', [1 n_bands/3], 'XTick', [1:n_bands/3], 'YLim', [-10 80], 'XLim', [0.5 n_bands/3+0.5] );
+set(gca, 'XLim', [1 n_bands/2], 'XTick', [1:n_bands/2], 'YLim', [-10 80], 'XLim', [0.5 n_bands/2+0.5] );
 ylabel('Yield [%]')
-legend({'cy3-channel', 'cy5-channel'}, 'location', 'NorthWest')
+legend({ 'cy5-channel'}, 'location', 'NorthWest')
 
 print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_yield.tif']); %save figure
 

@@ -43,7 +43,7 @@ if N_ref > 1
     Z = reshape(z, size(img));
     img_bg =  img - Z ;
 
-    plot_image_ui(img_bg)
+    plot_image_ui(img_bg);
 else
     img_bg =  img - bg_points(1,3) ;
 end

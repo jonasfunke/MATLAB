@@ -819,7 +819,7 @@ for i=1:length(d_crystal)
     hline(E_gfp(i), {'--', 'Color', cc(i,:), 'LineWidth', 1});
 end
 
-print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'calibration_curve.tif'])
+%print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'calibration_curve.tif'])
 
 
 %%
@@ -901,7 +901,7 @@ grid on
 xlabel('Separation from crystal structure [nm]')
 ylabel('Separation measured [nm]')
 
-print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal_offset-corrected.tif'])
+%print(cur_fig, '-dtiff','-r500',  [path_out_plots filesep 'experimental_vs_crystal_offset-corrected.tif'])
 
 %%
 dlmwrite([path_out_plots filesep 'mutant_distance_data.txt'] , [m d_exp*0.34], '\t')
