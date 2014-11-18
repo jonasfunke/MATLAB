@@ -138,6 +138,18 @@ close all
 fig_dim =[20 15];
 cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
 
+plot(10:51, I(1:end-1,1)./I(1:end-1,2), '.-')
+%set(gca, 'XTick',1:n_bands, 'XTickLabel',names,'Fontsize', 12)
+ylabel('Ratio cy2 / cy5')
+ylim([0 4]), xlim([10 51])
+print(cur_fig, '-dtiff','-r500' , [path_out filesep prefix_out '_IntesityRatio.tif']); %save figure
+
+
+%% PLOTTING STUFF
+close all
+fig_dim =[20 15];
+cur_fig = figure('Visible','on', 'PaperPositionMode', 'manual','PaperUnits','centimeters','PaperPosition', [0 0 fig_dim(1) fig_dim(2)], 'Position', [0 scrsz(4) fig_dim(1)*40 fig_dim(2)*40]);
+
 bar(I(1:2:n_bands,:)+I(2:2:n_bands,:))
 
 set(gca, 'XTick',1:n_bands/2, 'XTickLabel',names(2:2:n_bands,1),'Fontsize', 12)

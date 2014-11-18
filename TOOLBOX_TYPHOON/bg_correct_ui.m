@@ -46,6 +46,7 @@ if N_ref > 1
     plot_image_ui(img_bg);
 else
     img_bg =  img - bg_points(1,3) ;
+    bg = bg_points(1,3);
 end
 
 

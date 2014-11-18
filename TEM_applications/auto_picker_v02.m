@@ -31,6 +31,9 @@ n_img = size(fnames,2);
 path_out = [pname filesep datestr(now, 'yyyy-mm-dd_HH-MM') '_particles']; % output folder
 mkdir(path_out)
 
+% determine prefix
+prefix  = strsplit(pname, filesep);
+prefix = prefix{end};
 
 %% load images
 disp(['Loading and filtering ' num2str(n_img) ' images...'])
@@ -482,13 +485,16 @@ disp('Writing particles...')
 
 for t=1:n_ref/(mirror+1)
     % write as spider-file
-    writeSPIDERfile([path_out filesep 'ref_' num2str(t) '.spi'], data_refined(t).particles, 'stack')
-    writeSPIDERfile([path_out filesep 'ref_' num2str(t) '_rot.spi'], data_refined(t).particles_rot, 'stack')
+    writeSPIDERfile([path_out filesep prefix '_ref_' num2str(t) '.spi'], data_refined(t).particles, 'stack')
+    writeSPIDERfile([path_out filesep prefix '_ref_' num2str(t) '_rot.spi'], data_refined(t).particles_rot, 'stack')
   
+    % write a img file
+    WriteImagic(data_refined(t).particles, [path_out filesep prefix '_ref_' num2str(t)])
+
     % write as single tif-files
-    path_out_tif1 = [path_out filesep 'ref_' num2str(t) '_tif'];
-    path_out_tif2 = [path_out filesep 'ref_' num2str(t) '_rot_tif'];
-    path_out_spi = [path_out filesep 'ref_' num2str(t) '_spi'];
+    path_out_tif1 = [path_out filesep prefix '_ref_' num2str(t) '_tif'];
+    path_out_tif2 = [path_out filesep prefix '_ref_' num2str(t) '_rot_tif'];
+    path_out_spi = [path_out filesep prefix '_ref_' num2str(t) '_spi'];
     
     mkdir(path_out_tif1)
     mkdir(path_out_tif2)
@@ -498,13 +504,19 @@ for t=1:n_ref/(mirror+1)
         imwrite(data_refined(t).particles(:,:,i), [path_out_tif1 filesep 'ref_' num2str(t) '_' sprintf('%.3i',i) '.tif' ]);
         imwrite(data_refined(t).particles_rot(:,:,i), [path_out_tif2 filesep 'ref_' num2str(t) '_' sprintf('%.3i',i) '.tif' ]);
         writeSPIDERfile([path_out_spi filesep 'ref_' num2str(t) '_' sprintf('%.3i',i) '.spi' ], data_refined(t).particles(:,:,i))
-
     end
 end
 
 %% write all particles
 % write as spider-file
 writeSPIDERfile([path_out filesep 'all.spi'], cat(3,data.particles), 'stack')
+
+
+%% write as img file
+WriteImagic(cat(3,data.particles), [path_out filesep 'all'])
+
+%%
+
 
 % write as single tif-files
 path_out_tif = [path_out filesep 'all_tif'];
@@ -560,7 +572,7 @@ for i=1:n_img
     hold off
        
     %pause
-    print(cur_fig, '-dtiff', '-r300', [path_out filesep 'image2_' sprintf('%.03i',i) '.tif'])
+    print(cur_fig, '-dtiff', '-r200', [path_out filesep 'image2_' sprintf('%.03i',i) '.tif'])
 
 end
 
