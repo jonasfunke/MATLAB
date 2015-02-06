@@ -1,7 +1,13 @@
 %% startup
 clear all; close all; clc;
-run('my_prefs'); path0=cd;
-
+%run('my_prefs'); 
+path0=cd;
+data_dir = '/Users/jonasfunke/Documents/';
+scrsz = get(0,'ScreenSize'); % screen size
+ addpath('/Users/jonasfunke/Documents/MATLAB_old/TOOLBOX_GENERAL')
+ addpath('/Users/jonasfunke/Documents/MATLAB_old/TOOLBOX_MOVIE')
+ addpath('/Users/jonasfunke/Documents/MATLAB_old/TEM_applications')
+ addpath('/Users/jonasfunke/Documents/MATLAB_old/TOOLBOX_TEM/spider_matlab')
 %% parameters
 input = {'Box size [pixel]:', 'Number of class references:', 'Include mirror (0=no, 1=yes):',... % sample options
     'Binning:', 'Radius of high-pass filter [pixel]:', 'Angel resolution [deg]:'};
